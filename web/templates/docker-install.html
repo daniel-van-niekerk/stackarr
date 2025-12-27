@@ -1,0 +1,160 @@
+{{define "docker-install.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Not Found - StackArr</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #333; margin-bottom: 1rem; }
+        h2 { color: #667eea; margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem; }
+        p { color: #666; margin-bottom: 1rem; line-height: 1.6; }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+        }
+        .warning-box strong { color: #856404; }
+        .command-box {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            position: relative;
+        }
+        .command-box code {
+            display: block;
+            white-space: pre-wrap;
+        }
+        .step {
+            background: #f5f5f5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #667eea;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 2rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .refresh-btn {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #667eea;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+        ul { margin-left: 2rem; margin-bottom: 1rem; }
+        li { color: #666; margin-bottom: 0.5rem; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🐳 Docker Not Found</h1>
+
+    <div class="warning-box">
+        <strong>⚠️ Docker is required</strong><br>
+        StackArr requires Docker to manage containers. Docker is not currently installed or not running on this system.
+    </div>
+
+    <h2>Quick Install (Recommended)</h2>
+    <p>The easiest way to install Docker on most Linux systems:</p>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <strong>Download and run the official Docker install script:</strong>
+        <div class="command-box"><code>curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh</code></div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <strong>Add your user to the docker group (so you don't need sudo):</strong>
+        <div class="command-box"><code>sudo usermod -aG docker $USER
+newgrp docker</code></div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <strong>Verify Docker is running:</strong>
+        <div class="command-box"><code>docker --version
+docker ps</code></div>
+        <p style="margin-top: 0.5rem; color: #666;">If you see version info and no errors, Docker is ready!</p>
+    </div>
+
+    <h2>Manual Installation</h2>
+    <p>If you prefer manual installation, choose your distribution:</p>
+    <ul>
+        <li><strong>Ubuntu/Debian:</strong> <a href="https://docs.docker.com/engine/install/ubuntu/" target="_blank">Docker Installation Guide</a></li>
+        <li><strong>CentOS/RHEL:</strong> <a href="https://docs.docker.com/engine/install/centos/" target="_blank">Docker Installation Guide</a></li>
+        <li><strong>Fedora:</strong> <a href="https://docs.docker.com/engine/install/fedora/" target="_blank">Docker Installation Guide</a></li>
+        <li><strong>Other Linux:</strong> <a href="https://docs.docker.com/engine/install/" target="_blank">Docker Documentation</a></li>
+    </ul>
+
+    <h2>WSL (Windows Subsystem for Linux)</h2>
+    <p>If you're running WSL on Windows, install <strong>Docker Desktop for Windows</strong>:</p>
+    <ul>
+        <li>Download from <a href="https://www.docker.com/products/docker-desktop/" target="_blank">Docker Desktop</a></li>
+        <li>Enable WSL 2 integration in Docker Desktop settings</li>
+        <li>Restart WSL after installation</li>
+    </ul>
+
+    <h2>Next Steps</h2>
+    <p>After installing Docker:</p>
+    <ol style="margin-left: 2rem;">
+        <li>Make sure Docker service is running: <code style="background: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 3px;">sudo systemctl status docker</code></li>
+        <li>Refresh this page to continue with StackArr setup</li>
+    </ol>
+
+    <div style="margin-top: 2rem;">
+        <a href="/system" class="refresh-btn">↻ Refresh & Check Again</a>
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+    </div>
+</div>
+</body>
+</html>
+{{end}}

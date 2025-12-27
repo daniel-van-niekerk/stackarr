@@ -10,9 +10,10 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID           int64
-	Username     string
-	PasswordHash string
+	ID                      int64
+	Username                string
+	PasswordHash            string
+	ShowExternalContainers  bool
 }
 
 var (
@@ -57,10 +58,26 @@ func CreateUser(db *sql.DB, username, password string) error {
 
 // GetUserByUsername retrieves a user by username
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
-	query := `SELECT id, username, password_hash FROM users WHERE username = ?`
+	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1) FROM users WHERE username = ?`
 
 	user := &User{}
-	err := db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash)
+	err := db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers)
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByID retrieves a user by ID
+func GetUserByID(db *sql.DB, id int64) (*User, error) {
+	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1) FROM users WHERE id = ?`
+
+	user := &User{}
+	err := db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers)
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -94,4 +111,14 @@ func HasUsers(db *sql.DB) (bool, error) {
 		return false, fmt.Errorf("failed to count users: %w", err)
 	}
 	return count > 0, nil
+}
+
+// UpdateUserPreference updates a user's preference
+func UpdateUserPreference(db *sql.DB, userID int64, showExternal bool) error {
+	query := `UPDATE users SET show_external_containers = ? WHERE id = ?`
+	_, err := db.Exec(query, showExternal, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user preference: %w", err)
+	}
+	return nil
 }

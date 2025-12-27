@@ -56,6 +56,7 @@ func main() {
 		"web/templates/login.html",
 		"web/templates/setup.html",
 		"web/templates/dashboard.html",
+		"web/templates/docker-install.html",
 	))
 	log.Info().Msg("Templates loaded")
 
@@ -65,6 +66,7 @@ func main() {
 		Templates: tmpl,
 	}
 	dashboardHandlers := &handlers.DashboardHandlers{
+		DB:        db.DB,
 		Templates: tmpl,
 	}
 
@@ -90,6 +92,16 @@ func main() {
 		r.Use(auth.RequireAuth) // Require authentication
 
 		r.Get("/dashboard", dashboardHandlers.ShowDashboard)
+		r.Get("/docker-install", dashboardHandlers.ShowDockerInstall)
+
+		// Container control endpoints
+		r.Post("/containers/start", dashboardHandlers.StartContainer)
+		r.Post("/containers/stop", dashboardHandlers.StopContainer)
+		r.Post("/containers/restart", dashboardHandlers.RestartContainer)
+
+		// User preferences
+		r.Post("/preferences/toggle-external", dashboardHandlers.ToggleExternalContainers)
+
 		r.Post("/logout", authHandlers.HandleLogout)
 	})
 
