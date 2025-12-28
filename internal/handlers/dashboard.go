@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -12,6 +13,9 @@ import (
 	"github.com/daniel-van-niekerk/stackarr/internal/docker"
 	"github.com/rs/zerolog/log"
 )
+
+// AppVersion holds the application version, set by main
+var AppVersion = "dev"
 
 // DashboardHandlers holds dependencies for dashboard handlers
 type DashboardHandlers struct {
@@ -30,6 +34,7 @@ type ManagedContainer struct {
 	DockerID     string
 	Status       string // running, stopped, etc
 	StatusDetail string // uptime, exit code, etc
+	IsDeleted    bool   // true if container was deleted from Docker but still in database
 }
 
 // ShowDashboard displays the main dashboard
@@ -52,6 +57,7 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 		"ExternalContainers":     []docker.ContainerInfo{},
 		"ShowExternalContainers": false,
 		"DarkMode":               false,
+		"Version":                AppVersion,
 	}
 
 	// Get user preferences
@@ -118,6 +124,7 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 			DockerID:     dbContainer.DockerID,
 			Status:       "stopped",
 			StatusDetail: "Not running",
+			IsDeleted:    false,
 		}
 
 		// If we have a DockerID, check if it's running
@@ -126,6 +133,11 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 				mc.Status = dockerContainer.State
 				mc.StatusDetail = dockerContainer.Status
 				managedDockerIDs[dbContainer.DockerID] = true
+			} else {
+				// Container has a DockerID but doesn't exist in Docker - it was deleted
+				mc.IsDeleted = true
+				mc.Status = "deleted"
+				mc.StatusDetail = "Container deleted from Docker"
 			}
 		}
 
@@ -316,6 +328,90 @@ func (h *DashboardHandlers) RestartContainer(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Failed to restart container", http.StatusInternalServerError)
 		return
 	}
+
+	// Redirect back to dashboard
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// UpdateContainer handles updating a container to the latest image
+func (h *DashboardHandlers) UpdateContainer(w http.ResponseWriter, r *http.Request) {
+	// Get container ID from query parameter (this is the database ID)
+	containerIDStr := r.URL.Query().Get("id")
+	if containerIDStr == "" {
+		http.Error(w, "Container ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Convert to int64
+	var containerID int64
+	if _, err := fmt.Sscanf(containerIDStr, "%d", &containerID); err != nil {
+		http.Error(w, "Invalid container ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get container from database
+	db := &database.DB{DB: h.DB}
+	container, err := db.GetContainer(containerID)
+	if err != nil {
+		log.Error().Err(err).Int64("id", containerID).Msg("Failed to get container from database")
+		http.Error(w, "Container not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if container has a DockerID
+	if container.DockerID == "" {
+		http.Error(w, "Container not created in Docker yet", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	client, err := docker.NewClient()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create Docker client")
+		http.Error(w, "Failed to connect to Docker", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	// Convert database port mappings to Docker port bindings
+	portBindings := make([]docker.ContainerPortBinding, len(container.Ports))
+	for i, p := range container.Ports {
+		portBindings[i] = docker.ContainerPortBinding{
+			ContainerPort: p.Container,
+			HostPort:      p.Host,
+			Protocol:      p.Protocol,
+		}
+	}
+
+	// Convert volume mappings to bind strings
+	volumes := make([]string, len(container.Volumes))
+	for i, v := range container.Volumes {
+		volumes[i] = fmt.Sprintf("%s:%s", v.Host, v.Container)
+	}
+
+	// Convert environment map to slice
+	env := make([]string, 0, len(container.Environment))
+	for k, v := range container.Environment {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	// Update the container
+	log.Info().Str("name", container.Name).Str("image", container.Image).Msg("Updating container")
+	newDockerID, err := client.UpdateContainer(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env)
+	if err != nil {
+		log.Error().Err(err).Str("container", container.Name).Msg("Failed to update container")
+		http.Error(w, fmt.Sprintf("Failed to update container: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Update the DockerID in the database
+	container.DockerID = newDockerID
+	if err := db.UpdateContainer(container); err != nil {
+		log.Error().Err(err).Int64("id", containerID).Str("docker_id", newDockerID).Msg("Failed to update container DockerID in database")
+		// Continue anyway - the container is updated, just the database is out of sync
+	}
+
+	log.Info().Str("name", container.Name).Str("new_docker_id", newDockerID).Msg("Container updated successfully")
 
 	// Redirect back to dashboard
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)

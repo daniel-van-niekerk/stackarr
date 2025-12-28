@@ -22,7 +22,7 @@ func New() *Config {
 	return &Config{
 		Server: ServerConfig{
 			Host: "0.0.0.0",
-			Port: "8080",
+			Port: "8877",
 		},
 		Database: DatabaseConfig{
 			Path: "./data/stackarr.db",

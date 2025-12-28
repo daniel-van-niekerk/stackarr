@@ -17,6 +17,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Version is set at build time via -ldflags
+var Version = "dev"
+
 func main() {
 	// Configure zerolog for human-readable console output
 	log.Logger = log.Output(zerolog.ConsoleWriter{
@@ -53,6 +56,10 @@ func main() {
 
 	// Set database for auth middleware
 	auth.SetDB(db.DB)
+
+	// Set application version for handlers
+	handlers.AppVersion = Version
+	log.Info().Str("version", Version).Msg("Application version")
 
 	// Load HTML templates
 	tmpl := template.Must(template.ParseFiles(
@@ -112,6 +119,7 @@ func main() {
 		r.Post("/containers/start", dashboardHandlers.StartContainer)
 		r.Post("/containers/stop", dashboardHandlers.StopContainer)
 		r.Post("/containers/restart", dashboardHandlers.RestartContainer)
+		r.Post("/containers/update", dashboardHandlers.UpdateContainer)
 
 		// User preferences
 		r.Post("/preferences/toggle-external", dashboardHandlers.ToggleExternalContainers)

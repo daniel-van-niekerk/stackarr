@@ -16,8 +16,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o stackarr ./cmd/stackarr
+# Get version from git tags or use "dev"
+ARG VERSION=dev
+RUN echo "Building version: ${VERSION}"
+
+# Build the application with version injected
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w -X main.Version=${VERSION}" \
+    -o stackarr ./cmd/stackarr
 
 # Runtime stage
 FROM alpine:latest
@@ -38,16 +44,16 @@ COPY --from=builder /build/stackarr .
 COPY --from=builder /build/web ./web
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8877
 
 # Set environment variables
 ENV SERVER_HOST=0.0.0.0
-ENV SERVER_PORT=8080
+ENV SERVER_PORT=8877
 ENV DATABASE_PATH=/var/lib/stackarr/stackarr.db
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8877/ || exit 1
 
 # Run the application
 CMD ["./stackarr"]

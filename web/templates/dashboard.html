@@ -60,6 +60,24 @@
             letter-spacing: -0.5px;
         }
         .header-actions { display: flex; gap: 1rem; align-items: center; }
+        .user-badge {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .user-badge-label {
+            opacity: 0.8;
+            font-weight: 500;
+        }
+        .user-badge-name {
+            font-weight: 700;
+        }
         .btn-logout,
         .btn-theme-toggle {
             background: rgba(255,255,255,0.2);
@@ -99,6 +117,7 @@
         .status-item { display: flex; align-items: center; gap: 0.5rem; }
         .status-ok { color: #4caf50; font-weight: 600; }
         .status-error { color: #f44336; font-weight: 600; }
+        .status-warning { color: #ff9800; font-weight: 600; }
 
         .section {
             margin-bottom: 2rem;
@@ -195,6 +214,8 @@
         .btn-stop:hover { background: #da190b; }
         .btn-restart { background: #ff9800; color: white; }
         .btn-restart:hover { background: #e68900; }
+        .btn-update { background: #9c27b0; color: white; }
+        .btn-update:hover { background: #7b1fa2; }
         .btn-delete { background: #e0e0e0; color: #666; }
         .btn-delete:hover { background: #d0d0d0; }
 
@@ -323,17 +344,121 @@
             color: var(--text-tertiary);
         }
 
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem;
+                width: 100%;
+            }
+
+            .user-badge {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .btn-logout,
+            .btn-theme-toggle {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .user-badge-label {
+                display: none; /* Hide "Logged in as:" only on very tiny screens */
+            }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+            margin-top: 3rem;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
 
     </style>
 </head>
 <body{{if .DarkMode}} class="dark-mode"{{end}}>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+    </div>
     <div class="header">
         <div style="display: flex; align-items: center; gap: 1rem;">
             <img src="/static/logo.png" alt="StackArr" style="height: 40px;">
             <h1>StackArr</h1>
         </div>
         <div class="header-actions">
-            <span>{{.Username}}</span>
+            <div class="user-badge">
+                <span class="user-badge-label">Logged in as:</span>
+                <span class="user-badge-name">{{.Username}}</span>
+            </div>
             <form method="POST" action="/preferences/toggle-dark-mode" style="margin: 0;">
                 <button type="submit" class="btn-theme-toggle" title="Toggle dark mode">{{if .DarkMode}}☀️{{else}}🌙{{end}}</button>
             </form>
@@ -551,20 +676,27 @@ docker ps</code></div>
                     </div>
                     <div class="card-info">
                         <div><strong>Image:</strong> {{.Image}}</div>
-                        <div><strong>Status:</strong> <span class="{{if eq .Status "running"}}status-ok{{else}}status-error{{end}}">{{.Status}}</span></div>
+                        <div><strong>Status:</strong> <span class="{{if eq .Status "running"}}status-ok{{else if .IsDeleted}}status-warning{{else}}status-error{{end}}">{{.Status}}</span></div>
                         {{if .StatusDetail}}
-                        <div style="font-size: 0.85rem; color: #999;">{{.StatusDetail}}</div>
+                        <div style="font-size: 0.85rem; color: {{if .IsDeleted}}#ff9800{{else}}#999{{end}};">{{.StatusDetail}}</div>
                         {{end}}
                         {{if .Ports}}
                         <div><strong>Ports:</strong> {{range $index, $port := .Ports}}{{if $index}}, {{end}}{{$port.Host}}:{{$port.Container}}{{end}}</div>
                         {{end}}
                     </div>
                     <div class="card-actions">
-                        {{if .DockerID}}
+                        {{if .IsDeleted}}
+                            <div style="flex: 1; padding: 0.6rem; background: #fff3cd; color: #856404; border-radius: 6px; text-align: center; font-size: 0.85rem;">
+                                Container deleted from Docker
+                            </div>
+                        {{else if .DockerID}}
                             {{if eq .Status "running"}}
                             <form method="GET" action="/containers/add" style="flex: 1;">
                                 <input type="hidden" name="id" value="{{.ID}}">
                                 <button type="submit" class="btn" style="width: 100%; background: #2196f3; color: white;">Edit</button>
+                            </form>
+                            <form method="POST" action="/containers/update?id={{.ID}}" style="flex: 1;">
+                                <button type="submit" class="btn btn-update" style="width: 100%;">Update</button>
                             </form>
                             <form method="POST" action="/containers/stop?id={{.DockerID}}" style="flex: 1;">
                                 <button type="submit" class="btn btn-stop" style="width: 100%;">Stop</button>
@@ -576,6 +708,9 @@ docker ps</code></div>
                             <form method="GET" action="/containers/add" style="flex: 1;">
                                 <input type="hidden" name="id" value="{{.ID}}">
                                 <button type="submit" class="btn" style="width: 100%; background: #2196f3; color: white;">Edit</button>
+                            </form>
+                            <form method="POST" action="/containers/update?id={{.ID}}" style="flex: 1;">
+                                <button type="submit" class="btn btn-update" style="width: 100%;">Update</button>
                             </form>
                             <form method="POST" action="/containers/start?id={{.DockerID}}" style="flex: 1;">
                                 <button type="submit" class="btn btn-start" style="width: 100%;">Start</button>
@@ -646,7 +781,51 @@ docker ps</code></div>
         {{end}}
 
         {{end}}
+
+        <!-- Footer -->
+        <div class="footer">
+            <div>StackArr v{{.Version}}</div>
+            <div style="margin-top: 0.5rem;">
+                Made with ❤️ for the self-hosted community |
+                <a href="https://github.com/daniel-van-niekerk/stackarr" target="_blank">GitHub</a>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Show loading spinner on container action buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+
+            // Get all forms that trigger container actions
+            const forms = document.querySelectorAll('form[action*="/containers/"]');
+
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const action = form.getAttribute('action');
+
+                    // Set appropriate loading message based on action
+                    if (action.includes('/containers/update')) {
+                        loadingText.textContent = 'Updating container, please wait...';
+                        loadingOverlay.classList.add('active');
+                    } else if (action.includes('/containers/start')) {
+                        loadingText.textContent = 'Starting container...';
+                        loadingOverlay.classList.add('active');
+                    } else if (action.includes('/containers/stop')) {
+                        loadingText.textContent = 'Stopping container...';
+                        loadingOverlay.classList.add('active');
+                    } else if (action.includes('/containers/restart')) {
+                        loadingText.textContent = 'Restarting container...';
+                        loadingOverlay.classList.add('active');
+                    } else if (action.includes('/containers/delete')) {
+                        // Don't show spinner for delete, let the confirm dialog handle it
+                        return;
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
 {{end}}

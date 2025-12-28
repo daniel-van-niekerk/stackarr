@@ -175,3 +175,54 @@ func (c *Client) RemoveContainer(ctx context.Context, containerID string) error 
 
 	return nil
 }
+
+// UpdateContainer updates a container to the latest image version
+// It pulls the latest image, stops the old container, removes it, and creates a new one with the same config
+func (c *Client) UpdateContainer(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string) (string, error) {
+	log.Info().Str("container", containerName).Str("image", imageName).Msg("Updating container to latest image")
+
+	// Step 1: Pull the latest image
+	log.Info().Str("image", imageName).Msg("Pulling latest image")
+	if err := c.PullImage(ctx, imageName); err != nil {
+		log.Warn().Err(err).Msg("Failed to pull image, will try with local image")
+		// Continue anyway - maybe the local image is good enough
+	}
+
+	// Step 2: Stop the container if it's running
+	log.Info().Str("container", containerID).Msg("Stopping container")
+	stopCtx, stopCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer stopCancel()
+
+	timeout := 10
+	if err := c.cli.ContainerStop(stopCtx, containerID, container.StopOptions{
+		Timeout: &timeout,
+	}); err != nil {
+		// Ignore error if container is already stopped
+		log.Debug().Err(err).Msg("Container stop failed (may already be stopped)")
+	}
+
+	// Step 3: Remove the old container
+	log.Info().Str("container", containerID).Msg("Removing old container")
+	if err := c.RemoveContainer(ctx, containerID); err != nil {
+		return "", fmt.Errorf("failed to remove old container: %w", err)
+	}
+
+	// Step 4: Create new container with the same configuration
+	log.Info().Str("name", containerName).Msg("Creating new container")
+	newContainerID, err := c.CreateContainer(ctx, containerName, imageName, portBindings, volumes, env)
+	if err != nil {
+		return "", fmt.Errorf("failed to create new container (old container removed): %w", err)
+	}
+
+	// Step 5: Start the new container
+	log.Info().Str("container", newContainerID).Msg("Starting new container")
+	startCtx, startCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer startCancel()
+
+	if err := c.cli.ContainerStart(startCtx, newContainerID, container.StartOptions{}); err != nil {
+		return "", fmt.Errorf("failed to start new container (old container removed): %w", err)
+	}
+
+	log.Info().Str("old_id", containerID).Str("new_id", newContainerID).Msg("Container updated successfully")
+	return newContainerID, nil
+}
