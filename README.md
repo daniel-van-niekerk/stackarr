@@ -53,45 +53,76 @@ StackArr includes ready-to-deploy templates for:
 - **Docker** installed and running (StackArr will guide you through installation if needed)
 - **Go 1.21+** (only for building from source)
 
-### Method 1: Docker (Recommended)
+### Method 1: Docker Hub (Recommended)
 
-The easiest way to run StackArr is using Docker:
+The easiest way to run StackArr is pulling the pre-built image from Docker Hub:
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/stackarr.git
-cd stackarr
-
-# Start with docker-compose
-docker-compose up -d
-```
-
-Access StackArr at `http://localhost:8080`
-
-**Docker run command:**
 ```bash
 docker run -d \
   --name stackarr \
-  -p 8080:8080 \
+  -p 8877:8877 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v stackarr-data:/var/lib/stackarr \
   -v /mnt:/mnt \
   --restart unless-stopped \
-  stackarr:latest
+  danielvanniekerk/stackarr:latest
 ```
+
+**Using docker-compose:**
+```yaml
+version: '3.8'
+services:
+  stackarr:
+    image: danielvanniekerk/stackarr:latest
+    container_name: stackarr
+    ports:
+      - "8877:8877"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - stackarr-data:/var/lib/stackarr
+      - /mnt:/mnt
+    restart: unless-stopped
+
+volumes:
+  stackarr-data:
+```
+
+Access StackArr at `http://localhost:8877`
 
 **Important Notes:**
 - StackArr needs access to `/var/run/docker.sock` to manage Docker containers
 - Mount `/mnt` or your media paths so containers created by StackArr can access them
 - The `stackarr-data` volume persists your database and container configurations
 
-### Method 2: Binary
+**Version Pinning:**
+You can use specific version tags instead of `latest`:
+```bash
+docker pull danielvanniekerk/stackarr:1.0.0  # Specific version
+docker pull danielvanniekerk/stackarr:1.0    # Minor version
+docker pull danielvanniekerk/stackarr:1      # Major version
+docker pull danielvanniekerk/stackarr:latest # Latest release
+```
+
+### Method 2: Build from Source
+
+If you prefer to build from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/daniel-van-niekerk/stackarr.git
+cd stackarr
+
+# Start with docker-compose
+docker-compose up -d
+```
+
+### Method 3: Binary
 
 Build and run StackArr as a standalone binary:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/stackarr.git
+git clone https://github.com/daniel-van-niekerk/stackarr.git
 cd stackarr
 
 # Build the binary
@@ -101,11 +132,11 @@ go build -o stackarr ./cmd/stackarr
 ./stackarr
 ```
 
-StackArr will start on `http://localhost:8080` by default.
+StackArr will start on `http://localhost:8877` by default.
 
 ### First-Time Setup
 
-1. Navigate to `http://localhost:8080`
+1. Navigate to `http://localhost:8877`
 2. Create your admin account
 3. If Docker is not installed, follow the integrated installation guide
 4. Start deploying containers!
@@ -149,7 +180,7 @@ StackArr uses SQLite for data storage and creates the following directory struct
 
 ### Default Ports
 
-- **Web Interface**: 8080
+- **Web Interface**: 8877
 - **Database**: SQLite (no network port)
 
 You can change the port by setting the `PORT` environment variable:
@@ -190,7 +221,7 @@ stackarr/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/stackarr.git
+git clone https://github.com/daniel-van-niekerk/stackarr.git
 cd stackarr
 
 # Install dependencies
@@ -230,7 +261,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:8877;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
