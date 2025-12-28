@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/daniel-van-niekerk/stackarr/internal/auth"
 	"github.com/daniel-van-niekerk/stackarr/internal/database"
@@ -24,6 +25,8 @@ type ManagedContainer struct {
 	Name         string
 	ServiceType  string
 	Image        string
+	IconURL      string
+	Ports        []database.PortMapping
 	DockerID     string
 	Status       string // running, stopped, etc
 	StatusDetail string // uptime, exit code, etc
@@ -48,11 +51,13 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 		"ManagedContainers":      []ManagedContainer{},
 		"ExternalContainers":     []docker.ContainerInfo{},
 		"ShowExternalContainers": false,
+		"DarkMode":               false,
 	}
 
-	// Get user preference for showing external containers
+	// Get user preferences
 	if user != nil {
 		data["ShowExternalContainers"] = user.ShowExternalContainers
+		data["DarkMode"] = user.DarkMode
 	}
 
 	// Check Docker
@@ -92,32 +97,45 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 		log.Error().Err(err).Msg("Failed to list database containers")
 	}
 
-	// Build map of managed container Docker IDs
-	managedIDs := make(map[string]*database.Container)
-	for _, c := range dbContainers {
-		if c.DockerID != "" {
-			managedIDs[c.DockerID] = c
-		}
+	// Build map of Docker containers by ID
+	dockerContainersMap := make(map[string]docker.ContainerInfo)
+	for _, c := range allContainers {
+		dockerContainersMap[c.ID] = c
 	}
 
-	// Separate managed and external containers
+	// Build managed containers list from database
 	managed := []ManagedContainer{}
-	external := []docker.ContainerInfo{}
+	managedDockerIDs := make(map[string]bool)
 
+	for _, dbContainer := range dbContainers {
+		mc := ManagedContainer{
+			ID:           dbContainer.ID,
+			Name:         dbContainer.Name,
+			ServiceType:  dbContainer.ServiceType,
+			Image:        dbContainer.Image,
+			IconURL:      dbContainer.IconURL,
+			Ports:        dbContainer.Ports,
+			DockerID:     dbContainer.DockerID,
+			Status:       "stopped",
+			StatusDetail: "Not running",
+		}
+
+		// If we have a DockerID, check if it's running
+		if dbContainer.DockerID != "" {
+			if dockerContainer, exists := dockerContainersMap[dbContainer.DockerID]; exists {
+				mc.Status = dockerContainer.State
+				mc.StatusDetail = dockerContainer.Status
+				managedDockerIDs[dbContainer.DockerID] = true
+			}
+		}
+
+		managed = append(managed, mc)
+	}
+
+	// Build external containers list (Docker containers not in database)
+	external := []docker.ContainerInfo{}
 	for _, dockerContainer := range allContainers {
-		if dbContainer, exists := managedIDs[dockerContainer.ID]; exists {
-			// This is a managed container
-			managed = append(managed, ManagedContainer{
-				ID:           dbContainer.ID,
-				Name:         dbContainer.Name,
-				ServiceType:  dbContainer.ServiceType,
-				Image:        dbContainer.Image,
-				DockerID:     dockerContainer.ID,
-				Status:       dockerContainer.State,
-				StatusDetail: dockerContainer.Status,
-			})
-		} else {
-			// This is an external container
+		if !managedDockerIDs[dockerContainer.ID] {
 			external = append(external, dockerContainer)
 		}
 	}
@@ -125,22 +143,49 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 	data["ManagedContainers"] = managed
 	data["ExternalContainers"] = external
 
-	// Check which pre-configured services are installed
+	// Check which pre-configured services are installed (based on image name)
 	data["HasPlex"] = false
 	data["HasSonarr"] = false
 	data["HasRadarr"] = false
 	data["HasQBittorrent"] = false
+	data["HasOverseerr"] = false
+	data["HasSabnzbd"] = false
+	data["HasProwlarr"] = false
+	data["HasBazarr"] = false
+	data["HasFilebrowser"] = false
+	data["HasHomarr"] = false
 
 	for _, c := range managed {
-		switch c.ServiceType {
-		case "plex":
+		// Detect service type from image name
+		if containsIgnoreCase(c.Image, "plex") {
 			data["HasPlex"] = true
-		case "sonarr":
+		}
+		if containsIgnoreCase(c.Image, "sonarr") {
 			data["HasSonarr"] = true
-		case "radarr":
+		}
+		if containsIgnoreCase(c.Image, "radarr") {
 			data["HasRadarr"] = true
-		case "qbittorrent":
+		}
+		if containsIgnoreCase(c.Image, "qbittorrent") {
 			data["HasQBittorrent"] = true
+		}
+		if containsIgnoreCase(c.Image, "overseerr") {
+			data["HasOverseerr"] = true
+		}
+		if containsIgnoreCase(c.Image, "sabnzbd") {
+			data["HasSabnzbd"] = true
+		}
+		if containsIgnoreCase(c.Image, "prowlarr") {
+			data["HasProwlarr"] = true
+		}
+		if containsIgnoreCase(c.Image, "bazarr") {
+			data["HasBazarr"] = true
+		}
+		if containsIgnoreCase(c.Image, "filebrowser") {
+			data["HasFilebrowser"] = true
+		}
+		if containsIgnoreCase(c.Image, "homarr") {
+			data["HasHomarr"] = true
 		}
 	}
 
@@ -148,10 +193,6 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 }
 
 // ShowDockerInstall displays Docker installation instructions
-func (h *DashboardHandlers) ShowDockerInstall(w http.ResponseWriter, r *http.Request) {
-	h.Templates.ExecuteTemplate(w, "docker-install.html", nil)
-}
-
 // StartContainer handles starting a container
 func (h *DashboardHandlers) StartContainer(w http.ResponseWriter, r *http.Request) {
 	containerID := r.URL.Query().Get("id")
@@ -179,6 +220,11 @@ func (h *DashboardHandlers) StartContainer(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
+// containsIgnoreCase checks if a string contains a substring (case-insensitive)
+func containsIgnoreCase(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}
+
 // ToggleExternalContainers toggles the visibility of external containers
 func (h *DashboardHandlers) ToggleExternalContainers(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.GetUserSession(r)
@@ -195,6 +241,27 @@ func (h *DashboardHandlers) ToggleExternalContainers(w http.ResponseWriter, r *h
 	newValue := !user.ShowExternalContainers
 	if err := auth.UpdateUserPreference(h.DB, userID, newValue); err != nil {
 		log.Error().Err(err).Msg("Failed to update preference")
+	}
+
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// ToggleDarkMode toggles the user's dark mode preference
+func (h *DashboardHandlers) ToggleDarkMode(w http.ResponseWriter, r *http.Request) {
+	userID, _ := auth.GetUserSession(r)
+
+	// Get current user
+	user, err := auth.GetUserByID(h.DB, userID)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user")
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+
+	// Toggle dark mode
+	newValue := !user.DarkMode
+	if err := auth.UpdateDarkMode(h.DB, userID, newValue); err != nil {
+		log.Error().Err(err).Msg("Failed to update dark mode")
 	}
 
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)

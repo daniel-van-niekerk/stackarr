@@ -62,7 +62,7 @@ func (c *Client) ListContainers(ctx context.Context, all bool) ([]ContainerInfo,
 		}
 
 		result = append(result, ContainerInfo{
-			ID:      cont.ID[:12], // Short ID (first 12 chars)
+			ID:      cont.ID, // Full container ID
 			Name:    name,
 			Image:   cont.Image,
 			State:   cont.State,

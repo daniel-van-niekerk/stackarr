@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite" // Import SQLite driver
 )
@@ -73,6 +74,7 @@ func (db *DB) InitSchema() error {
 		name TEXT NOT NULL UNIQUE,
 		service_type TEXT NOT NULL,
 		image TEXT NOT NULL,
+		icon_url TEXT,
 		ports TEXT,
 		volumes TEXT,
 		environment TEXT,
@@ -122,6 +124,18 @@ func (db *DB) runMigrations() error {
 				ALTER TABLE users ADD COLUMN show_external_containers BOOLEAN DEFAULT 1;
 			`,
 		},
+		{
+			name: "add_icon_url_to_containers",
+			sql: `
+				ALTER TABLE containers ADD COLUMN icon_url TEXT;
+			`,
+		},
+		{
+			name: "add_dark_mode_to_users",
+			sql: `
+				ALTER TABLE users ADD COLUMN dark_mode BOOLEAN DEFAULT 0;
+			`,
+		},
 	}
 
 	// Apply each migration
@@ -141,7 +155,8 @@ func (db *DB) runMigrations() error {
 		// Apply migration
 		if _, err := db.Exec(migration.sql); err != nil {
 			// If column already exists, mark as applied anyway
-			if err.Error() == "SQL logic error: duplicate column name: show_external_containers (1)" {
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "duplicate column name") {
 				// Mark as applied
 				if _, err := db.Exec("INSERT INTO migrations (name) VALUES (?)", migration.name); err != nil {
 					return fmt.Errorf("failed to record migration %s: %w", migration.name, err)

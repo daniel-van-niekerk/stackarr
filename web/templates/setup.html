@@ -5,7 +5,49 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Setup - StackArr</title>
+        <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+            href="/static/favicon-32x32.png"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="16x16"
+            href="/static/favicon-16x16.png"
+        />
+        <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="/static/apple-touch-icon.png"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap"
+            rel="stylesheet"
+        />
         <style>
+            :root {
+                --bg-form: #ffffff;
+                --text-primary: #333333;
+                --text-secondary: #555555;
+                --text-tertiary: #666666;
+                --input-border: #e0e0e0;
+                --input-bg: #ffffff;
+            }
+
+            body.dark-mode {
+                --bg-form: #2d2d2d;
+                --text-primary: #e0e0e0;
+                --text-secondary: #b0b0b0;
+                --text-tertiary: #999999;
+                --input-border: #404040;
+                --input-bg: #1a1a1a;
+            }
+
             * {
                 margin: 0;
                 padding: 0;
@@ -22,20 +64,26 @@
                 justify-content: center;
             }
             .container {
-                background: white;
+                background: var(--bg-form);
                 padding: 2rem;
                 border-radius: 12px;
                 box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
                 max-width: 400px;
                 width: 100%;
             }
-            h1,
+            h1 {
+                color: var(--text-primary);
+                font-family: "Poppins", sans-serif;
+                font-weight: 800;
+                font-size: 2.5rem;
+                letter-spacing: -1px;
+            }
             h2 {
-                color: #333;
+                color: var(--text-primary);
                 margin-bottom: 1.5rem;
             }
             p {
-                color: #666;
+                color: var(--text-tertiary);
                 margin-bottom: 1.5rem;
             }
             .form-group {
@@ -44,14 +92,16 @@
             label {
                 display: block;
                 margin-bottom: 0.5rem;
-                color: #555;
+                color: var(--text-secondary);
                 font-weight: 500;
             }
             input[type="text"],
             input[type="password"] {
                 width: 100%;
                 padding: 0.75rem;
-                border: 2px solid #e0e0e0;
+                border: 2px solid var(--input-border);
+                background: var(--input-bg);
+                color: var(--text-primary);
                 border-radius: 6px;
                 font-size: 1rem;
             }
@@ -85,7 +135,14 @@
     </head>
     <body>
         <div class="container">
-            <h1>🚀 StackArr</h1>
+            <div style="text-align: center; margin-bottom: 1.5rem">
+                <img
+                    src="/static/logo.png"
+                    alt="StackArr"
+                    style="height: 60px; margin-bottom: 0.5rem"
+                />
+                <h1 style="margin-bottom: 0">StackArr</h1>
+            </div>
             <h2>First-Time Setup</h2>
             <p>Create your admin account to get started.</p>
 
@@ -131,6 +188,15 @@
                 <button type="submit">Create Admin Account</button>
             </form>
         </div>
+        <script>
+            // Apply dark mode from system preference on load
+            if (
+                window.matchMedia &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches
+            ) {
+                document.body.classList.add("dark-mode");
+            }
+        </script>
     </body>
 </html>
 {{end}}

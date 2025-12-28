@@ -14,6 +14,7 @@ type User struct {
 	Username                string
 	PasswordHash            string
 	ShowExternalContainers  bool
+	DarkMode                bool
 }
 
 var (
@@ -58,10 +59,10 @@ func CreateUser(db *sql.DB, username, password string) error {
 
 // GetUserByUsername retrieves a user by username
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
-	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1) FROM users WHERE username = ?`
+	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1), COALESCE(dark_mode, 0) FROM users WHERE username = ?`
 
 	user := &User{}
-	err := db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers)
+	err := db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers, &user.DarkMode)
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -74,10 +75,10 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 
 // GetUserByID retrieves a user by ID
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
-	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1) FROM users WHERE id = ?`
+	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1), COALESCE(dark_mode, 0) FROM users WHERE id = ?`
 
 	user := &User{}
-	err := db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers)
+	err := db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers, &user.DarkMode)
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -119,6 +120,16 @@ func UpdateUserPreference(db *sql.DB, userID int64, showExternal bool) error {
 	_, err := db.Exec(query, showExternal, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update user preference: %w", err)
+	}
+	return nil
+}
+
+// UpdateDarkMode updates a user's dark mode preference
+func UpdateDarkMode(db *sql.DB, userID int64, darkMode bool) error {
+	query := `UPDATE users SET dark_mode = ? WHERE id = ?`
+	_, err := db.Exec(query, darkMode, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update dark mode: %w", err)
 	}
 	return nil
 }

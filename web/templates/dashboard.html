@@ -5,12 +5,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - StackArr</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-color: #e0e0e0;
+            --shadow: rgba(0,0,0,0.1);
+            --shadow-hover: rgba(0,0,0,0.15);
+        }
+
+        body.dark-mode {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-tertiary: #808080;
+            --border-color: #404040;
+            --shadow: rgba(0,0,0,0.3);
+            --shadow-hover: rgba(0,0,0,0.5);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f5f7fa;
+            background: var(--bg-primary);
             min-height: 100vh;
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
         }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -21,9 +53,15 @@
             justify-content: space-between;
             align-items: center;
         }
-        .header h1 { font-size: 1.8rem; }
+        .header h1 {
+            font-size: 2rem;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
         .header-actions { display: flex; gap: 1rem; align-items: center; }
-        .btn-logout {
+        .btn-logout,
+        .btn-theme-toggle {
             background: rgba(255,255,255,0.2);
             color: white;
             padding: 0.5rem 1rem;
@@ -31,8 +69,16 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 1rem;
         }
-        .btn-logout:hover { background: rgba(255,255,255,0.3); }
+        .btn-theme-toggle {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .btn-logout:hover,
+        .btn-theme-toggle:hover {
+            background: rgba(255,255,255,0.3);
+        }
 
         .container {
             max-width: 1400px;
@@ -41,10 +87,10 @@
         }
 
         .status-bar {
-            background: white;
+            background: var(--bg-secondary);
             padding: 1.5rem;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow);
             margin-bottom: 2rem;
             display: flex;
             justify-content: space-between;
@@ -65,7 +111,7 @@
         }
         .section-title {
             font-size: 1.4rem;
-            color: #333;
+            color: var(--text-primary);
             font-weight: 600;
         }
         .btn-add {
@@ -88,15 +134,15 @@
         }
 
         .card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow);
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 16px var(--shadow-hover);
         }
 
         .card-header {
@@ -108,7 +154,7 @@
         .card-title {
             font-size: 1.2rem;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
         }
         .card-badge {
             padding: 0.25rem 0.75rem;
@@ -122,7 +168,7 @@
         .badge-external { background: #f3e5f5; color: #9c27b0; }
 
         .card-info {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9rem;
             margin-bottom: 1rem;
         }
@@ -188,10 +234,10 @@
         }
 
         .service-card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
             padding: 2rem 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow);
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
@@ -208,7 +254,14 @@
 
         .service-card.installed {
             border-color: #4caf50;
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.1) 100%);
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .service-card.installed:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: #4caf50;
         }
 
         .service-card.installed::after {
@@ -252,30 +305,38 @@
         .service-name {
             font-size: 1.2rem;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
         }
 
         .service-card:not(.installed) .service-name {
-            color: #999;
+            color: var(--text-tertiary);
         }
 
         .service-description {
             font-size: 0.85rem;
-            color: #666;
+            color: var(--text-secondary);
             line-height: 1.4;
         }
 
         .service-card:not(.installed) .service-description {
-            color: #aaa;
+            color: var(--text-tertiary);
         }
+
+
     </style>
 </head>
-<body>
+<body{{if .DarkMode}} class="dark-mode"{{end}}>
     <div class="header">
-        <h1>🚀 StackArr</h1>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <img src="/static/logo.png" alt="StackArr" style="height: 40px;">
+            <h1>StackArr</h1>
+        </div>
         <div class="header-actions">
             <span>{{.Username}}</span>
+            <form method="POST" action="/preferences/toggle-dark-mode" style="margin: 0;">
+                <button type="submit" class="btn-theme-toggle" title="Toggle dark mode">{{if .DarkMode}}☀️{{else}}🌙{{end}}</button>
+            </form>
             <form method="POST" action="/logout" style="margin: 0;">
                 <button type="submit" class="btn-logout">Logout</button>
             </form>
@@ -284,11 +345,67 @@
 
     <div class="container">
         {{if not .DockerInstalled}}
-        <!-- Docker not installed -->
-        <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <h2 style="color: #f44336; margin-bottom: 1rem;">⚠️ Docker Not Found</h2>
-            <p style="color: #666; margin-bottom: 1rem;">Docker is required to manage containers. Please install Docker first.</p>
-            <a href="/docker-install" class="btn-add">View Installation Guide</a>
+        <!-- Docker Installation Guide -->
+        <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 2rem;">
+            <h2 style="color: #f44336; margin-bottom: 1rem;">🐳 Docker Not Found</h2>
+
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1.5rem; border-radius: 6px; margin-bottom: 2rem;">
+                <strong style="color: #856404;">⚠️ Docker is required</strong><br>
+                <span style="color: #856404;">StackArr requires Docker to manage containers. Docker is not currently installed or not running on this system.</span>
+            </div>
+
+            <h3 style="color: var(--text-primary); margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem;">Quick Install (Recommended)</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6;">The easiest way to install Docker on most Linux systems:</p>
+
+            <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
+                <span style="display: inline-block; background: #667eea; color: white; width: 2rem; height: 2rem; border-radius: 50%; text-align: center; line-height: 2rem; font-weight: bold; margin-right: 0.5rem;">1</span>
+                <strong style="color: var(--text-primary);">Download and run the official Docker install script:</strong>
+                <div style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; margin: 1rem 0;"><code style="display: block; white-space: pre-wrap;">curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh</code></div>
+            </div>
+
+            <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
+                <span style="display: inline-block; background: #667eea; color: white; width: 2rem; height: 2rem; border-radius: 50%; text-align: center; line-height: 2rem; font-weight: bold; margin-right: 0.5rem;">2</span>
+                <strong style="color: var(--text-primary);">Add your user to the docker group (so you don't need sudo):</strong>
+                <div style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; margin: 1rem 0;"><code style="display: block; white-space: pre-wrap;">sudo usermod -aG docker $USER
+newgrp docker</code></div>
+            </div>
+
+            <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
+                <span style="display: inline-block; background: #667eea; color: white; width: 2rem; height: 2rem; border-radius: 50%; text-align: center; line-height: 2rem; font-weight: bold; margin-right: 0.5rem;">3</span>
+                <strong style="color: var(--text-primary);">Verify Docker is running:</strong>
+                <div style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; margin: 1rem 0;"><code style="display: block; white-space: pre-wrap;">docker --version
+docker ps</code></div>
+                <p style="margin-top: 0.5rem; color: var(--text-secondary);">If you see version info and no errors, Docker is ready!</p>
+            </div>
+
+            <h3 style="color: var(--text-primary); margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem;">Manual Installation</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">If you prefer manual installation, choose your distribution:</p>
+            <ul style="margin-left: 2rem; margin-bottom: 1rem;">
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;"><strong>Ubuntu/Debian:</strong> <a href="https://docs.docker.com/engine/install/ubuntu/" target="_blank" style="color: #667eea;">Docker Installation Guide</a></li>
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;"><strong>CentOS/RHEL:</strong> <a href="https://docs.docker.com/engine/install/centos/" target="_blank" style="color: #667eea;">Docker Installation Guide</a></li>
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;"><strong>Fedora:</strong> <a href="https://docs.docker.com/engine/install/fedora/" target="_blank" style="color: #667eea;">Docker Installation Guide</a></li>
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;"><strong>Other Linux:</strong> <a href="https://docs.docker.com/engine/install/" target="_blank" style="color: #667eea;">Docker Documentation</a></li>
+            </ul>
+
+            <h3 style="color: var(--text-primary); margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem;">WSL (Windows Subsystem for Linux)</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">If you're running WSL on Windows, install <strong>Docker Desktop for Windows</strong>:</p>
+            <ul style="margin-left: 2rem; margin-bottom: 1rem;">
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;">Download from <a href="https://www.docker.com/products/docker-desktop/" target="_blank" style="color: #667eea;">Docker Desktop</a></li>
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;">Enable WSL 2 integration in Docker Desktop settings</li>
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;">Restart WSL after installation</li>
+            </ul>
+
+            <h3 style="color: var(--text-primary); margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem;">Next Steps</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">After installing Docker:</p>
+            <ol style="margin-left: 2rem; margin-bottom: 1rem;">
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;">Make sure Docker service is running: <code style="background: var(--bg-primary); padding: 0.2rem 0.5rem; border-radius: 3px; color: var(--text-primary);">sudo systemctl status docker</code></li>
+                <li style="color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.6;">Refresh this page to continue with StackArr setup</li>
+            </ol>
+
+            <div style="margin-top: 2rem;">
+                <a href="/dashboard" class="btn-add" onclick="window.location.reload(); return false;">↻ Refresh & Check Again</a>
+            </div>
         </div>
         {{else}}
 
@@ -316,12 +433,12 @@
         <!-- Pre-configured Services Section -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Quick Start Containers</h2>
+                <h2 class="section-title">Quick Start</h2>
             </div>
 
             <div class="services-grid">
                 <!-- Plex -->
-                <div class="service-card {{if .HasPlex}}installed{{end}}" onclick="window.location.href='/containers/add?template=plex'">
+                <div class="service-card {{if .HasPlex}}installed{{end}}" {{if not .HasPlex}}onclick="window.location.href='/containers/add?template=plex'"{{end}}>
                     <div class="service-icon">
                         <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/plex.png" alt="Plex" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
                     </div>
@@ -330,7 +447,7 @@
                 </div>
 
                 <!-- Sonarr -->
-                <div class="service-card {{if .HasSonarr}}installed{{end}}" onclick="window.location.href='/containers/add?template=sonarr'">
+                <div class="service-card {{if .HasSonarr}}installed{{end}}" {{if not .HasSonarr}}onclick="window.location.href='/containers/add?template=sonarr'"{{end}}>
                     <div class="service-icon">
                         <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sonarr.png" alt="Sonarr" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
                     </div>
@@ -339,7 +456,7 @@
                 </div>
 
                 <!-- Radarr -->
-                <div class="service-card {{if .HasRadarr}}installed{{end}}" onclick="window.location.href='/containers/add?template=radarr'">
+                <div class="service-card {{if .HasRadarr}}installed{{end}}" {{if not .HasRadarr}}onclick="window.location.href='/containers/add?template=radarr'"{{end}}>
                     <div class="service-icon">
                         <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/radarr.png" alt="Radarr" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
                     </div>
@@ -348,12 +465,66 @@
                 </div>
 
                 <!-- qBittorrent -->
-                <div class="service-card {{if .HasQBittorrent}}installed{{end}}" onclick="window.location.href='/containers/add?template=qbittorrent'">
+                <div class="service-card {{if .HasQBittorrent}}installed{{end}}" {{if not .HasQBittorrent}}onclick="window.location.href='/containers/add?template=qbittorrent'"{{end}}>
                     <div class="service-icon">
                         <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/qbittorrent.png" alt="qBittorrent" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
                     </div>
                     <div class="service-name">qBittorrent</div>
                     <div class="service-description">BitTorrent client with web interface</div>
+                </div>
+
+                <!-- Overseerr -->
+                <div class="service-card {{if .HasOverseerr}}installed{{end}}" {{if not .HasOverseerr}}onclick="window.location.href='/containers/add?template=overseerr'"{{end}}>
+                    <div class="service-icon">
+                        <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/overseerr.png" alt="Overseerr" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+                    </div>
+                    <div class="service-name">Overseerr</div>
+                    <div class="service-description">Request management and media discovery</div>
+                </div>
+
+                <!-- SABnzbd -->
+                <div class="service-card {{if .HasSabnzbd}}installed{{end}}" {{if not .HasSabnzbd}}onclick="window.location.href='/containers/add?template=sabnzbd'"{{end}}>
+                    <div class="service-icon">
+                        <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/sabnzbd.png" alt="SABnzbd" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+                    </div>
+                    <div class="service-name">SABnzbd</div>
+                    <div class="service-description">Usenet downloader</div>
+                </div>
+
+                <!-- Prowlarr -->
+                <div class="service-card {{if .HasProwlarr}}installed{{end}}" {{if not .HasProwlarr}}onclick="window.location.href='/containers/add?template=prowlarr'"{{end}}>
+                    <div class="service-icon">
+                        <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/prowlarr.png" alt="Prowlarr" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+                    </div>
+                    <div class="service-name">Prowlarr</div>
+                    <div class="service-description">Indexer manager for Sonarr/Radarr</div>
+                </div>
+
+                <!-- Bazarr -->
+                <div class="service-card {{if .HasBazarr}}installed{{end}}" {{if not .HasBazarr}}onclick="window.location.href='/containers/add?template=bazarr'"{{end}}>
+                    <div class="service-icon">
+                        <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/bazarr.png" alt="Bazarr" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+                    </div>
+                    <div class="service-name">Bazarr</div>
+                    <div class="service-description">Subtitle management for Sonarr/Radarr</div>
+                </div>
+
+                <!-- FileBrowser -->
+                <div class="service-card {{if .HasFilebrowser}}installed{{end}}" {{if not .HasFilebrowser}}onclick="window.location.href='/containers/add?template=filebrowser'"{{end}}>
+                    <div class="service-icon">
+                        <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/filebrowser.png" alt="FileBrowser" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+                    </div>
+                    <div class="service-name">FileBrowser</div>
+                    <div class="service-description">Web-based file manager</div>
+                </div>
+
+                <!-- Homarr -->
+                <div class="service-card {{if .HasHomarr}}installed{{end}}" {{if not .HasHomarr}}onclick="window.location.href='/containers/add?template=homarr'"{{end}}>
+                    <div class="service-icon">
+                        <img src="https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/homarr.png" alt="Homarr" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+                    </div>
+                    <div class="service-name">Homarr</div>
+                    <div class="service-description">Customizable dashboard for your services</div>
                 </div>
             </div>
         </div>
@@ -361,7 +532,7 @@
         <!-- Managed Containers Section -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Custom Containers</h2>
+                <h2 class="section-title">Managed Containers</h2>
                 <a href="/containers/add" class="btn-add">+ Add Container</a>
             </div>
 
@@ -370,32 +541,53 @@
                 {{range .ManagedContainers}}
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">{{.Name}}</div>
+                        {{if .IconURL}}
+                        <div class="service-icon" style="width: 40px; height: 40px; margin-right: 12px; flex-shrink: 0;">
+                            <img src="{{.IconURL}}" alt="{{.Name}}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">
+                        </div>
+                        {{end}}
+                        <div class="card-title" style="flex: 1;">{{.Name}}</div>
                         <span class="card-badge badge-managed">Managed</span>
                     </div>
                     <div class="card-info">
-                        <div><strong>Service:</strong> {{.ServiceType}}</div>
                         <div><strong>Image:</strong> {{.Image}}</div>
                         <div><strong>Status:</strong> <span class="{{if eq .Status "running"}}status-ok{{else}}status-error{{end}}">{{.Status}}</span></div>
                         {{if .StatusDetail}}
                         <div style="font-size: 0.85rem; color: #999;">{{.StatusDetail}}</div>
                         {{end}}
+                        {{if .Ports}}
+                        <div><strong>Ports:</strong> {{range $index, $port := .Ports}}{{if $index}}, {{end}}{{$port.Host}}:{{$port.Container}}{{end}}</div>
+                        {{end}}
                     </div>
                     <div class="card-actions">
-                        {{if eq .Status "running"}}
-                        <form method="POST" action="/containers/stop?id={{.DockerID}}" style="flex: 1;">
-                            <button type="submit" class="btn btn-stop" style="width: 100%;">Stop</button>
-                        </form>
-                        <form method="POST" action="/containers/restart?id={{.DockerID}}" style="flex: 1;">
-                            <button type="submit" class="btn btn-restart" style="width: 100%;">Restart</button>
-                        </form>
+                        {{if .DockerID}}
+                            {{if eq .Status "running"}}
+                            <form method="GET" action="/containers/add" style="flex: 1;">
+                                <input type="hidden" name="id" value="{{.ID}}">
+                                <button type="submit" class="btn" style="width: 100%; background: #2196f3; color: white;">Edit</button>
+                            </form>
+                            <form method="POST" action="/containers/stop?id={{.DockerID}}" style="flex: 1;">
+                                <button type="submit" class="btn btn-stop" style="width: 100%;">Stop</button>
+                            </form>
+                            <form method="POST" action="/containers/restart?id={{.DockerID}}" style="flex: 1;">
+                                <button type="submit" class="btn btn-restart" style="width: 100%;">Restart</button>
+                            </form>
+                            {{else}}
+                            <form method="GET" action="/containers/add" style="flex: 1;">
+                                <input type="hidden" name="id" value="{{.ID}}">
+                                <button type="submit" class="btn" style="width: 100%; background: #2196f3; color: white;">Edit</button>
+                            </form>
+                            <form method="POST" action="/containers/start?id={{.DockerID}}" style="flex: 1;">
+                                <button type="submit" class="btn btn-start" style="width: 100%;">Start</button>
+                            </form>
+                            {{end}}
                         {{else}}
-                        <form method="POST" action="/containers/start?id={{.DockerID}}" style="flex: 1;">
-                            <button type="submit" class="btn btn-start" style="width: 100%;">Start</button>
-                        </form>
+                            <div style="flex: 1; padding: 0.6rem; background: #fff3cd; color: #856404; border-radius: 6px; text-align: center; font-size: 0.85rem;">
+                                Failed to create - check logs
+                            </div>
                         {{end}}
-                        <form method="POST" action="/containers/delete/{{.ID}}" style="flex: 0.5;" onsubmit="return confirm('Delete {{.Name}}?');">
-                            <button type="submit" class="btn btn-delete" style="width: 100%;">🗑️</button>
+                        <form method="POST" action="/containers/delete/{{.ID}}" style="flex: 1;" onsubmit="return confirm('Are you sure you want to delete {{.Name}}? This will stop and remove the container.');">
+                            <button type="submit" class="btn btn-delete" style="width: 100%;">Delete</button>
                         </form>
                     </div>
                 </div>

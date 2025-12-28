@@ -56,7 +56,7 @@ func main() {
 		"web/templates/login.html",
 		"web/templates/setup.html",
 		"web/templates/dashboard.html",
-		"web/templates/docker-install.html",
+		"web/templates/container-form.html",
 	))
 	log.Info().Msg("Templates loaded")
 
@@ -69,6 +69,10 @@ func main() {
 		DB:        db.DB,
 		Templates: tmpl,
 	}
+	containerHandlers := &handlers.ContainerHandlers{
+		DB:        db.DB,
+		Templates: tmpl,
+	}
 
 	// Create Chi router
 	r := chi.NewRouter()
@@ -76,6 +80,9 @@ func main() {
 	// Global middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// Serve static files
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	// Public routes (no authentication required)
 	r.Group(func(r chi.Router) {
@@ -92,7 +99,11 @@ func main() {
 		r.Use(auth.RequireAuth) // Require authentication
 
 		r.Get("/dashboard", dashboardHandlers.ShowDashboard)
-		r.Get("/docker-install", dashboardHandlers.ShowDockerInstall)
+
+		// Container management
+		r.Get("/containers/add", containerHandlers.ShowContainerForm)
+		r.Post("/containers/save", containerHandlers.SaveContainer)
+		r.Post("/containers/delete/{id}", containerHandlers.DeleteContainer)
 
 		// Container control endpoints
 		r.Post("/containers/start", dashboardHandlers.StartContainer)
@@ -101,6 +112,7 @@ func main() {
 
 		// User preferences
 		r.Post("/preferences/toggle-external", dashboardHandlers.ToggleExternalContainers)
+		r.Post("/preferences/toggle-dark-mode", dashboardHandlers.ToggleDarkMode)
 
 		r.Post("/logout", authHandlers.HandleLogout)
 	})

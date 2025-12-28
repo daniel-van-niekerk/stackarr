@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/rs/zerolog/log"
 )
 
@@ -75,4 +78,100 @@ func IsDockerInstalled() bool {
 	}
 
 	return true
+}
+
+// PullImage pulls a Docker image
+func (c *Client) PullImage(ctx context.Context, imageName string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	log.Info().Str("image", imageName).Msg("Pulling Docker image")
+	reader, err := c.cli.ImagePull(ctx, imageName, image.PullOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to pull image: %w", err)
+	}
+	defer reader.Close()
+
+	// Read the pull output to completion (required for pull to actually happen)
+	buf := make([]byte, 1024)
+	for {
+		_, err := reader.Read(buf)
+		if err != nil {
+			break
+		}
+	}
+
+	return nil
+}
+
+// ContainerPortBinding represents a port binding for container creation
+type ContainerPortBinding struct {
+	ContainerPort int
+	HostPort      int
+	Protocol      string
+}
+
+// CreateContainer creates a Docker container
+func (c *Client) CreateContainer(ctx context.Context, name, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Build port bindings
+	portMap := nat.PortMap{}
+	exposedPorts := nat.PortSet{}
+	for _, pb := range portBindings {
+		port, err := nat.NewPort(pb.Protocol, fmt.Sprintf("%d", pb.ContainerPort))
+		if err != nil {
+			return "", fmt.Errorf("invalid port: %w", err)
+		}
+		exposedPorts[port] = struct{}{}
+		portMap[port] = []nat.PortBinding{
+			{
+				HostIP:   "0.0.0.0",
+				HostPort: fmt.Sprintf("%d", pb.HostPort),
+			},
+		}
+	}
+
+	// Create container config
+	config := &container.Config{
+		Image:        imageName,
+		Env:          env,
+		ExposedPorts: exposedPorts,
+	}
+
+	hostConfig := &container.HostConfig{
+		PortBindings: portMap,
+		Binds:        volumes,
+		RestartPolicy: container.RestartPolicy{
+			Name: "unless-stopped",
+		},
+	}
+
+	// Create the container
+	resp, err := c.cli.ContainerCreate(ctx, config, hostConfig, nil, nil, name)
+	if err != nil {
+		return "", fmt.Errorf("failed to create container: %w", err)
+	}
+
+	return resp.ID, nil
+}
+
+// RemoveContainer removes a Docker container
+func (c *Client) RemoveContainer(ctx context.Context, containerID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	log.Info().Str("id", containerID).Msg("Removing Docker container")
+
+	options := container.RemoveOptions{
+		Force: true,  // Force removal even if running
+		RemoveVolumes: false,  // Don't remove volumes
+	}
+
+	if err := c.cli.ContainerRemove(ctx, containerID, options); err != nil {
+		return fmt.Errorf("failed to remove container: %w", err)
+	}
+
+	return nil
 }

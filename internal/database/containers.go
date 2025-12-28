@@ -13,6 +13,7 @@ type Container struct {
 	Name        string
 	ServiceType string
 	Image       string
+	IconURL     string
 	Ports       []PortMapping
 	Volumes     []VolumeMapping
 	Environment map[string]string
@@ -55,11 +56,11 @@ func (db *DB) CreateContainer(c *Container) error {
 	}
 
 	query := `
-		INSERT INTO containers (name, service_type, image, ports, volumes, environment, compose_path, enabled, docker_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO containers (name, service_type, image, icon_url, ports, volumes, environment, compose_path, enabled, docker_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	result, err := db.Exec(query, c.Name, c.ServiceType, c.Image, string(ports), string(volumes), string(environment), c.ComposePath, c.Enabled, c.DockerID)
+	result, err := db.Exec(query, c.Name, c.ServiceType, c.Image, c.IconURL, string(ports), string(volumes), string(environment), c.ComposePath, c.Enabled, c.DockerID)
 	if err != nil {
 		return fmt.Errorf("failed to insert container: %w", err)
 	}
@@ -70,12 +71,12 @@ func (db *DB) CreateContainer(c *Container) error {
 
 // GetContainer retrieves a container by ID
 func (db *DB) GetContainer(id int64) (*Container, error) {
-	query := `SELECT id, name, service_type, image, ports, volumes, environment, compose_path, enabled, docker_id, created_at, updated_at FROM containers WHERE id = ?`
+	query := `SELECT id, name, service_type, image, COALESCE(icon_url, '') as icon_url, ports, volumes, environment, compose_path, enabled, docker_id, created_at, updated_at FROM containers WHERE id = ?`
 
 	c := &Container{}
 	var ports, volumes, environment string
 
-	err := db.QueryRow(query, id).Scan(&c.ID, &c.Name, &c.ServiceType, &c.Image, &ports, &volumes, &environment, &c.ComposePath, &c.Enabled, &c.DockerID, &c.CreatedAt, &c.UpdatedAt)
+	err := db.QueryRow(query, id).Scan(&c.ID, &c.Name, &c.ServiceType, &c.Image, &c.IconURL, &ports, &volumes, &environment, &c.ComposePath, &c.Enabled, &c.DockerID, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("container not found")
 	}
@@ -99,7 +100,7 @@ func (db *DB) GetContainer(id int64) (*Container, error) {
 
 // ListContainers retrieves all containers
 func (db *DB) ListContainers() ([]*Container, error) {
-	query := `SELECT id, name, service_type, image, ports, volumes, environment, compose_path, enabled, docker_id, created_at, updated_at FROM containers ORDER BY created_at DESC`
+	query := `SELECT id, name, service_type, image, COALESCE(icon_url, '') as icon_url, ports, volumes, environment, compose_path, enabled, docker_id, created_at, updated_at FROM containers ORDER BY created_at DESC`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -112,7 +113,7 @@ func (db *DB) ListContainers() ([]*Container, error) {
 		c := &Container{}
 		var ports, volumes, environment string
 
-		err := rows.Scan(&c.ID, &c.Name, &c.ServiceType, &c.Image, &ports, &volumes, &environment, &c.ComposePath, &c.Enabled, &c.DockerID, &c.CreatedAt, &c.UpdatedAt)
+		err := rows.Scan(&c.ID, &c.Name, &c.ServiceType, &c.Image, &c.IconURL, &ports, &volumes, &environment, &c.ComposePath, &c.Enabled, &c.DockerID, &c.CreatedAt, &c.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan container: %w", err)
 		}
@@ -136,11 +137,11 @@ func (db *DB) UpdateContainer(c *Container) error {
 
 	query := `
 		UPDATE containers
-		SET name = ?, service_type = ?, image = ?, ports = ?, volumes = ?, environment = ?, compose_path = ?, enabled = ?, docker_id = ?, updated_at = CURRENT_TIMESTAMP
+		SET name = ?, service_type = ?, image = ?, icon_url = ?, ports = ?, volumes = ?, environment = ?, compose_path = ?, enabled = ?, docker_id = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 	`
 
-	_, err := db.Exec(query, c.Name, c.ServiceType, c.Image, string(ports), string(volumes), string(environment), c.ComposePath, c.Enabled, c.DockerID, c.ID)
+	_, err := db.Exec(query, c.Name, c.ServiceType, c.Image, c.IconURL, string(ports), string(volumes), string(environment), c.ComposePath, c.Enabled, c.DockerID, c.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update container: %w", err)
 	}
