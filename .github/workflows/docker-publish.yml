@@ -58,10 +58,12 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
 
       - name: Update Docker Hub description
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/release'
         uses: peter-evans/dockerhub-description@v4
+        continue-on-error: true
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ env.IMAGE_NAME }}
-          short-description: ${{ github.event.repository.description }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: danielvanniekerk/stackarr
+          short-description: "A modern, web-based Docker container management interface for media server stacks"
           readme-filepath: ./README.md
