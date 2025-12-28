@@ -21,7 +21,10 @@ ARG VERSION=dev
 RUN echo "Building version: ${VERSION}"
 
 # Build the application with version injected
-RUN CGO_ENABLED=0 GOOS=linux go build \
+# Use TARGETPLATFORM for cross-compilation
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.Version=${VERSION}" \
     -o stackarr ./cmd/stackarr
 
