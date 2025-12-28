@@ -51,6 +51,9 @@ func main() {
 	}
 	log.Info().Msg("Database ready")
 
+	// Set database for auth middleware
+	auth.SetDB(db.DB)
+
 	// Load HTML templates
 	tmpl := template.Must(template.ParseFiles(
 		"web/templates/login.html",

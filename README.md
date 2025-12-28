@@ -50,11 +50,44 @@ StackArr includes ready-to-deploy templates for:
 
 ### Prerequisites
 
-- **Linux** (Ubuntu, Debian, CentOS, Fedora, or similar)
 - **Docker** installed and running (StackArr will guide you through installation if needed)
-- **Go 1.21+** (for building from source)
+- **Go 1.21+** (only for building from source)
 
-### Quick Install (Recommended)
+### Method 1: Docker (Recommended)
+
+The easiest way to run StackArr is using Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/stackarr.git
+cd stackarr
+
+# Start with docker-compose
+docker-compose up -d
+```
+
+Access StackArr at `http://localhost:8080`
+
+**Docker run command:**
+```bash
+docker run -d \
+  --name stackarr \
+  -p 8080:8080 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v stackarr-data:/var/lib/stackarr \
+  -v /mnt:/mnt \
+  --restart unless-stopped \
+  stackarr:latest
+```
+
+**Important Notes:**
+- StackArr needs access to `/var/run/docker.sock` to manage Docker containers
+- Mount `/mnt` or your media paths so containers created by StackArr can access them
+- The `stackarr-data` volume persists your database and container configurations
+
+### Method 2: Binary
+
+Build and run StackArr as a standalone binary:
 
 ```bash
 # Clone the repository
