@@ -55,6 +55,34 @@ func main() {
 	}
 	log.Info().Msg("Database ready")
 
+	// Check for user reset request
+	resetToken := os.Getenv("RESET_USER")
+	if resetToken != "" {
+		if resetToken == "confirm-delete-user" {
+			count, err := auth.DeleteAllUsers(db.DB)
+			if err != nil {
+				log.Error().
+					Err(err).
+					Str("action", "user_reset_failed").
+					Msg("Failed to delete users during reset")
+			} else if count == 0 {
+				log.Info().
+					Str("action", "user_reset").
+					Msg("RESET_USER set but no users found")
+			} else {
+				log.Warn().
+					Str("action", "user_reset").
+					Int64("users_deleted", count).
+					Msg("All users deleted via RESET_USER - setup required")
+			}
+		} else {
+			log.Warn().
+				Str("action", "user_reset_failed").
+				Str("provided_token", resetToken).
+				Msg("Invalid RESET_USER token - expected 'confirm-delete-user'")
+		}
+	}
+
 	// Set database for auth middleware
 	auth.SetDB(db.DB)
 
