@@ -270,16 +270,12 @@ server {
 
 ## Roadmap
 
-- [ ] Multi-user support with permissions
+- [x] Asynchronous container create/update progress
+- [ ] User recovery
 - [ ] Container logs viewer
-- [ ] Resource monitoring (CPU, memory, network)
 - [ ] Backup/restore functionality
-- [ ] Custom template creation
-- [ ] Docker network management
 - [ ] Volume browser
-- [ ] Webhook notifications
-- [ ] REST API
-- [ ] Container health checks
+- [ ] Image update notifications
 
 ## Contributing
 

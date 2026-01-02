@@ -3,14 +3,17 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/daniel-van-niekerk/stackarr/internal/auth"
 	"github.com/daniel-van-niekerk/stackarr/internal/database"
 	"github.com/daniel-van-niekerk/stackarr/internal/docker"
+	"github.com/daniel-van-niekerk/stackarr/internal/streaming"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,8 +22,9 @@ var AppVersion = "dev"
 
 // DashboardHandlers holds dependencies for dashboard handlers
 type DashboardHandlers struct {
-	DB        *sql.DB
-	Templates *template.Template
+	DB              *sql.DB
+	Templates       *template.Template
+	ProgressManager *streaming.ProgressManager
 }
 
 // ManagedContainer combines database container with Docker status
@@ -364,11 +368,47 @@ func (h *DashboardHandlers) UpdateContainer(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Generate operation ID and launch async container update
+	operationID := fmt.Sprintf("update-%s-%d", container.Name, time.Now().Unix())
+	h.ProgressManager.CreateOperation(operationID)
+
+	// Launch async operation
+	go h.executeContainerUpdate(operationID, container)
+
+	// Return operation ID as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"operation_id": operationID,
+		"status":       "started",
+	})
+}
+
+// executeContainerUpdate executes container update asynchronously with progress streaming
+func (h *DashboardHandlers) executeContainerUpdate(operationID string, container *database.Container) {
+	defer h.ProgressManager.Complete(operationID)
+
 	ctx := context.Background()
+	progressChan := make(chan streaming.ProgressEvent, 100)
+
+	// Forward progress events to all subscribers
+	go func() {
+		for event := range progressChan {
+			h.ProgressManager.Publish(operationID, event)
+		}
+	}()
+
+	// Execute container update with progress
+	log.Info().Str("operation_id", operationID).Str("name", container.Name).Msg("Starting async container update")
+
 	client, err := docker.NewClient()
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create Docker client")
-		http.Error(w, "Failed to connect to Docker", http.StatusInternalServerError)
+		log.Error().Err(err).Str("operation_id", operationID).Msg("Failed to create Docker client")
+		h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+			Type:      "error",
+			Message:   fmt.Sprintf("Failed to connect to Docker: %v", err),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		close(progressChan)
 		return
 	}
 	defer client.Close()
@@ -395,24 +435,49 @@ func (h *DashboardHandlers) UpdateContainer(w http.ResponseWriter, r *http.Reque
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	// Update the container
-	log.Info().Str("name", container.Name).Str("image", container.Image).Msg("Updating container")
-	newDockerID, err := client.UpdateContainer(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env)
+	// Update the container with progress
+	newDockerID, err := client.UpdateContainerWithProgress(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env, progressChan)
+	close(progressChan)
+
 	if err != nil {
-		log.Error().Err(err).Str("container", container.Name).Msg("Failed to update container")
-		http.Error(w, fmt.Sprintf("Failed to update container: %v", err), http.StatusInternalServerError)
+		log.Error().Err(err).Str("operation_id", operationID).Str("name", container.Name).Msg("Container update failed")
+		h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+			Type:      "error",
+			Message:   fmt.Sprintf("Failed to update container: %v", err),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
 		return
 	}
 
-	// Update the DockerID in the database
+	// Update the database with new DockerID
+	h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+		Type:      "database_update",
+		Message:   "Saving container to database...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	})
+
+	db := &database.DB{DB: h.DB}
 	container.DockerID = newDockerID
 	if err := db.UpdateContainer(container); err != nil {
-		log.Error().Err(err).Int64("id", containerID).Str("docker_id", newDockerID).Msg("Failed to update container DockerID in database")
-		// Continue anyway - the container is updated, just the database is out of sync
+		log.Error().Err(err).Str("operation_id", operationID).Msg("Failed to update container DockerID in database")
+		h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+			Type:      "error",
+			Message:   fmt.Sprintf("Failed to save Docker ID: %v", err),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
 	}
 
-	log.Info().Str("name", container.Name).Str("new_docker_id", newDockerID).Msg("Container updated successfully")
+	log.Info().Str("operation_id", operationID).Str("name", container.Name).Str("new_docker_id", newDockerID).Msg("Container updated and saved successfully")
 
-	// Redirect back to dashboard
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	// Send completion event
+	h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+		Type:      "complete",
+		Message:   "Container updated successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+		Data: map[string]string{
+			"docker_id": newDockerID,
+			"redirect":  "/dashboard",
+		},
+	})
 }

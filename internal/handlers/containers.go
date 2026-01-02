@@ -1,25 +1,31 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/daniel-van-niekerk/stackarr/internal/auth"
 	"github.com/daniel-van-niekerk/stackarr/internal/database"
 	"github.com/daniel-van-niekerk/stackarr/internal/docker"
+	"github.com/daniel-van-niekerk/stackarr/internal/streaming"
 	"github.com/rs/zerolog/log"
 )
 
 // ContainerHandlers holds dependencies for container handlers
 type ContainerHandlers struct {
-	DB        *sql.DB
-	Templates *template.Template
+	DB              *sql.DB
+	Templates       *template.Template
+	ProgressManager *streaming.ProgressManager
 }
 
 // createVolumeDirectories creates host directories for volume mounts
@@ -358,13 +364,52 @@ func (h *ContainerHandlers) ShowContainerForm(w http.ResponseWriter, r *http.Req
 
 // SaveContainer handles creating/updating a container
 func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		log.Error().Err(err).Msg("Failed to parse form")
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
+	// Read the body (required for multipart parsing)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to read request body")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Failed to read request body",
+		})
 		return
 	}
 
-	// Parse basic fields
+	// Recreate the body so parsing can read it
+	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+	// For multipart/form-data, use ParseMultipartForm with a larger max memory allocation
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "" && bytes.Contains([]byte(contentType), []byte("multipart/form-data")) {
+		// Use ParseMultipartForm for multipart data
+		// 32MB max size for the entire multipart message
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			log.Error().
+				Err(err).
+				Str("content_type", contentType).
+				Msg("Failed to parse multipart form")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid form data",
+			})
+			return
+		}
+	} else {
+		// Fall back to regular form parsing for application/x-www-form-urlencoded
+		if err := r.ParseForm(); err != nil {
+			log.Error().Err(err).Msg("Failed to parse form")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid form data",
+			})
+			return
+		}
+	}
+
+	// Parse basic fields (FormValue works on both r.Form and r.MultipartForm.Value)
 	name := r.FormValue("name")
 	image := r.FormValue("image")
 	iconURL := r.FormValue("icon_url")
@@ -373,7 +418,11 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 	// Validate required fields
 	if name == "" || image == "" {
 		log.Error().Str("name", name).Str("image", image).Msg("Missing required fields")
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Container name and image are required",
+		})
 		return
 	}
 
@@ -386,14 +435,11 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			for _, c := range containers {
 				if c.Name == name {
 					log.Warn().Str("name", name).Msg("Container name already exists")
-					data := map[string]interface{}{
-						"Error": fmt.Sprintf("A container named '%s' already exists. Please use a different name or delete the existing one first.", name),
-						"Container": ContainerFormData{
-							Name:  name,
-							Image: image,
-						},
-					}
-					h.Templates.ExecuteTemplate(w, "container-form.html", data)
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusConflict)
+					json.NewEncoder(w).Encode(map[string]string{
+						"error": fmt.Sprintf("A container named '%s' already exists. Please use a different name or delete the existing one first.", name),
+					})
 					return
 				}
 			}
@@ -508,6 +554,14 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			http.Error(w, "Failed to update container", http.StatusInternalServerError)
 			return
 		}
+
+		// Return success JSON for edit case (no async operation needed for config updates)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":   "success",
+			"redirect": "/dashboard",
+		})
+		return
 	} else {
 		// Create new container
 		log.Info().Str("name", name).Msg("Creating new container in database")
@@ -530,26 +584,183 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 		}
 		log.Info().Msg("Container saved to database")
 
-		// Create and start the Docker container
-		ctx := context.Background()
-		log.Info().Str("name", name).Str("image", image).Msg("Attempting to create and start container")
-		dockerID, err := createAndStartContainer(ctx, name, image, ports, volumes, envVars)
-		if err != nil {
-			log.Error().Err(err).Str("name", name).Msg("Failed to create/start container")
-			// Don't fail the request, container config is saved but not started
-		} else {
-			log.Info().Str("dockerID", dockerID).Str("name", name).Msg("Container created successfully")
-			// Update the database with Docker container ID
-			container.DockerID = dockerID
-			if err := db.UpdateContainer(container); err != nil {
-				log.Error().Err(err).Msg("Failed to update container with Docker ID")
-			} else {
-				log.Info().Str("name", name).Msg("Database updated with Docker ID")
-			}
+		// Generate operation ID and launch async container creation
+		operationID := fmt.Sprintf("create-%s-%d", name, time.Now().Unix())
+		h.ProgressManager.CreateOperation(operationID)
+
+		// Prepare data for async execution
+		containerData := ContainerFormData{
+			ID:             container.ID,
+			Name:           name,
+			Image:          image,
+			IconURL:        iconURL,
+			PortMappings:   ports,
+			VolumeMappings: volumes,
+			EnvVars:        envVars,
 		}
+
+		// Launch async operation
+		go h.executeContainerCreate(operationID, containerData)
+
+		// Return operation ID as JSON
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"operation_id": operationID,
+			"status":       "started",
+		})
+		return
 	}
 
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// executeContainerCreate executes container creation asynchronously with progress streaming
+func (h *ContainerHandlers) executeContainerCreate(operationID string, data ContainerFormData) {
+	defer h.ProgressManager.Complete(operationID)
+
+	ctx := context.Background()
+	progressChan := make(chan streaming.ProgressEvent, 100)
+
+	// Forward progress events to all subscribers
+	go func() {
+		for event := range progressChan {
+			h.ProgressManager.Publish(operationID, event)
+		}
+	}()
+
+	// Execute container creation with progress
+	log.Info().Str("operation_id", operationID).Str("name", data.Name).Msg("Starting async container create")
+
+	dockerID, err := h.createAndStartContainerWithProgress(ctx, data, progressChan)
+	close(progressChan)
+
+	if err != nil {
+		log.Error().Err(err).Str("operation_id", operationID).Msg("Container creation failed")
+		h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+			Type:      "error",
+			Message:   fmt.Sprintf("Failed to create container: %v", err),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// Update database with Docker ID
+	h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+		Type:      "database_update",
+		Message:   "Saving container to database...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	})
+
+	db := &database.DB{DB: h.DB}
+	container := &database.Container{
+		ID:          data.ID,
+		Name:        data.Name,
+		ServiceType: "",
+		Image:       data.Image,
+		IconURL:     data.IconURL,
+		Ports:       data.PortMappings,
+		Volumes:     data.VolumeMappings,
+		Environment: data.EnvVars,
+		DockerID:    dockerID,
+		Enabled:     true,
+	}
+
+	if err := db.UpdateContainer(container); err != nil {
+		log.Error().Err(err).Str("operation_id", operationID).Msg("Failed to update container with Docker ID")
+		h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+			Type:      "error",
+			Message:   fmt.Sprintf("Failed to save Docker ID: %v", err),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	log.Info().Str("operation_id", operationID).Str("docker_id", dockerID).Msg("Container created and saved successfully")
+
+	// Send completion event
+	h.ProgressManager.Publish(operationID, streaming.ProgressEvent{
+		Type:      "complete",
+		Message:   "Container created successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+		Data: map[string]string{
+			"docker_id": dockerID,
+			"redirect":  "/dashboard",
+		},
+	})
+}
+
+// createAndStartContainerWithProgress creates and starts a Docker container with progress streaming
+func (h *ContainerHandlers) createAndStartContainerWithProgress(ctx context.Context, data ContainerFormData, progressChan chan<- streaming.ProgressEvent) (string, error) {
+	client, err := docker.NewClient()
+	if err != nil {
+		return "", fmt.Errorf("failed to create Docker client: %w", err)
+	}
+	defer client.Close()
+
+	// Pull the image with progress
+	progressChan <- streaming.ProgressEvent{
+		Type:      "image_pull",
+		Message:   fmt.Sprintf("Pulling image %s...", data.Image),
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	if err := client.PullImageWithProgress(ctx, data.Image, progressChan); err != nil {
+		log.Warn().Err(err).Msg("Failed to pull image, will try to use local image")
+		// Continue anyway - maybe the local image is good enough
+	}
+
+	// Convert ports to Docker format
+	portBindings := make([]docker.ContainerPortBinding, 0, len(data.PortMappings))
+	for _, p := range data.PortMappings {
+		portBindings = append(portBindings, docker.ContainerPortBinding{
+			ContainerPort: p.Container,
+			HostPort:      p.Host,
+			Protocol:      p.Protocol,
+		})
+	}
+
+	// Convert volumes to Docker format
+	volumeBindings := make([]string, 0, len(data.VolumeMappings))
+	for _, v := range data.VolumeMappings {
+		volumeBindings = append(volumeBindings, fmt.Sprintf("%s:%s", v.Host, v.Container))
+	}
+
+	// Create host directories for volume mounts
+	if err := createVolumeDirectories(data.VolumeMappings); err != nil {
+		log.Warn().Err(err).Msg("Failed to create volume directories")
+		// Continue anyway - some volumes might be Docker volumes or already exist
+	}
+
+	// Convert env vars to Docker format
+	envList := make([]string, 0, len(data.EnvVars))
+	for k, v := range data.EnvVars {
+		envList = append(envList, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	// Create the container
+	progressChan <- streaming.ProgressEvent{
+		Type:      "container_create",
+		Message:   "Creating Docker container...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	containerID, err := client.CreateContainer(ctx, data.Name, data.Image, portBindings, volumeBindings, envList)
+	if err != nil {
+		return "", fmt.Errorf("failed to create container: %w", err)
+	}
+
+	// Start the container
+	progressChan <- streaming.ProgressEvent{
+		Type:      "container_start",
+		Message:   "Starting Docker container...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	if err := client.StartContainer(ctx, containerID); err != nil {
+		return "", fmt.Errorf("failed to start container: %w", err)
+	}
+
+	return containerID, nil
 }
 
 // generateDockerCompose generates a docker-compose YAML file
