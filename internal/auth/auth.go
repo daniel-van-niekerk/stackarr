@@ -133,3 +133,19 @@ func UpdateDarkMode(db *sql.DB, userID int64, darkMode bool) error {
 	}
 	return nil
 }
+
+// DeleteAllUsers removes all users from the database
+// This is a destructive operation intended for password recovery
+func DeleteAllUsers(db *sql.DB) (int64, error) {
+	result, err := db.Exec("DELETE FROM users")
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete users: %w", err)
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return count, nil
+}

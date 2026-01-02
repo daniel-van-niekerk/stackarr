@@ -141,6 +141,44 @@ StackArr will start on `http://localhost:8877` by default.
 3. If Docker is not installed, follow the integrated installation guide
 4. Start deploying containers!
 
+### Password Recovery
+
+If you lose access to your admin account, you can reset all users using an environment variable:
+
+**Docker:**
+```bash
+docker stop stackarr
+docker run -d \
+  --name stackarr \
+  -e RESET_USER=confirm-delete-user \
+  -p 8877:8877 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v stackarr-data:/var/lib/stackarr \
+  danielvanniekerk/stackarr:latest
+```
+
+**Docker Compose:**
+```yaml
+services:
+  stackarr:
+    image: danielvanniekerk/stackarr:latest
+    environment:
+      - RESET_USER=confirm-delete-user
+    # ... other configuration
+```
+
+**Binary:**
+```bash
+RESET_USER=confirm-delete-user ./stackarr
+```
+
+**Important:**
+- The value MUST be exactly `confirm-delete-user` (case-sensitive)
+- This will delete ALL users from the database
+- After deletion, navigate to `http://localhost:8877` to create a new admin account
+- Remove the environment variable after reset to prevent accidental resets
+- Check application logs for confirmation of the reset action
+
 ## Usage
 
 ### Adding Containers
@@ -271,7 +309,7 @@ server {
 ## Roadmap
 
 - [x] Asynchronous container create/update progress
-- [ ] User recovery
+- [x] User recovery
 - [ ] Container logs viewer
 - [ ] Backup/restore functionality
 - [ ] Volume browser
