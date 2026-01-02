@@ -34,9 +34,6 @@ FROM alpine:latest
 # Install ca-certificates and docker cli for HTTPS requests
 RUN apk --no-cache add ca-certificates docker-cli
 
-# Create data directory
-RUN mkdir -p /var/lib/stackarr/compose
-
 # Set working directory
 WORKDIR /app
 
@@ -46,13 +43,15 @@ COPY --from=builder /build/stackarr .
 # Copy web assets
 COPY --from=builder /build/web ./web
 
+# Create data directory for database and compose files
+RUN mkdir -p /app/data
+
 # Expose port
 EXPOSE 8877
 
 # Set environment variables
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_PORT=8877
-ENV DATABASE_PATH=/var/lib/stackarr/stackarr.db
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

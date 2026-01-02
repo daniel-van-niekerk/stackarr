@@ -62,7 +62,7 @@ docker run -d \
   --name stackarr \
   -p 8877:8877 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v stackarr-data:/var/lib/stackarr \
+  -v stackarr-data:/app/data \
   -v /mnt:/mnt \
   --restart unless-stopped \
   danielvanniekerk/stackarr:latest
@@ -79,7 +79,7 @@ services:
       - "8877:8877"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - stackarr-data:/var/lib/stackarr
+      - stackarr-data:/app/data
       - /mnt:/mnt
     restart: unless-stopped
 
@@ -92,7 +92,7 @@ Access StackArr at `http://localhost:8877`
 **Important Notes:**
 - StackArr needs access to `/var/run/docker.sock` to manage Docker containers
 - Mount `/mnt` or your media paths so containers created by StackArr can access them
-- The `stackarr-data` volume persists your database and container configurations
+- The `stackarr-data` volume persists your database and container configurations at `/app/data`
 
 **Version Pinning:**
 You can use specific version tags instead of `latest`:
@@ -153,7 +153,7 @@ docker run -d \
   -e RESET_USER=confirm-delete-user \
   -p 8877:8877 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v stackarr-data:/var/lib/stackarr \
+  -v stackarr-data:/app/data \
   danielvanniekerk/stackarr:latest
 ```
 
@@ -208,7 +208,7 @@ Toggle between light and dark themes using the sun/moon button in the header. Yo
 StackArr uses SQLite for data storage and creates the following directory structure:
 
 ```
-/var/lib/stackarr/
+/app/data/
 ├── stackarr.db           # Database file
 └── compose/              # Docker-compose files for each container
     ├── plex.yml
