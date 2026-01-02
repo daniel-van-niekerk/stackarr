@@ -11,6 +11,7 @@ import (
 	"github.com/daniel-van-niekerk/stackarr/internal/config"
 	"github.com/daniel-van-niekerk/stackarr/internal/database"
 	"github.com/daniel-van-niekerk/stackarr/internal/handlers"
+	"github.com/daniel-van-niekerk/stackarr/internal/streaming"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -57,6 +58,19 @@ func main() {
 	// Set database for auth middleware
 	auth.SetDB(db.DB)
 
+	// Initialize progress manager for SSE streaming
+	progressManager := streaming.NewProgressManager()
+	log.Info().Msg("Progress manager initialized")
+
+	// Start cleanup goroutine for old operations
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			progressManager.CleanupOld(30 * time.Minute)
+		}
+	}()
+
 	// Set application version for handlers
 	handlers.AppVersion = Version
 	log.Info().Str("version", Version).Msg("Application version")
@@ -76,12 +90,17 @@ func main() {
 		Templates: tmpl,
 	}
 	dashboardHandlers := &handlers.DashboardHandlers{
-		DB:        db.DB,
-		Templates: tmpl,
+		DB:              db.DB,
+		Templates:       tmpl,
+		ProgressManager: progressManager,
 	}
 	containerHandlers := &handlers.ContainerHandlers{
-		DB:        db.DB,
-		Templates: tmpl,
+		DB:              db.DB,
+		Templates:       tmpl,
+		ProgressManager: progressManager,
+	}
+	streamingHandlers := &handlers.StreamingHandlers{
+		ProgressManager: progressManager,
 	}
 
 	// Create Chi router
@@ -124,6 +143,9 @@ func main() {
 		// User preferences
 		r.Post("/preferences/toggle-external", dashboardHandlers.ToggleExternalContainers)
 		r.Post("/preferences/toggle-dark-mode", dashboardHandlers.ToggleDarkMode)
+
+		// SSE progress streaming endpoint
+		r.Get("/containers/progress/{operationID}", streamingHandlers.StreamProgress)
 
 		r.Post("/logout", authHandlers.HandleLogout)
 	})

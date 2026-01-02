@@ -2,9 +2,12 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
+	"github.com/daniel-van-niekerk/stackarr/internal/streaming"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
@@ -102,6 +105,101 @@ func (c *Client) PullImage(ctx context.Context, imageName string) error {
 	}
 
 	return nil
+}
+
+// DockerPullProgress represents a Docker pull progress response
+type DockerPullProgress struct {
+	ID             string `json:"id"`
+	Status         string `json:"status"`
+	Progress       string `json:"progress,omitempty"`
+	ProgressDetail struct {
+		Current int64 `json:"current"`
+		Total   int64 `json:"total"`
+	} `json:"progressDetail,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+// PullImageWithProgress pulls a Docker image and streams progress events
+func (c *Client) PullImageWithProgress(ctx context.Context, imageName string, progressChan chan<- streaming.ProgressEvent) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	log.Info().Str("image", imageName).Msg("Pulling Docker image with progress")
+
+	reader, err := c.cli.ImagePull(ctx, imageName, image.PullOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to pull image: %w", err)
+	}
+	defer reader.Close()
+
+	// Parse and stream progress
+	decoder := json.NewDecoder(reader)
+	layerProgress := make(map[string]*streaming.LayerProgress) // Track each layer
+
+	for {
+		var progress DockerPullProgress
+		if err := decoder.Decode(&progress); err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Warn().Err(err).Msg("Error decoding progress")
+			continue
+		}
+
+		// Handle errors
+		if progress.Error != "" {
+			progressChan <- streaming.ProgressEvent{
+				Type:      "error",
+				Message:   progress.Error,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+			return fmt.Errorf("image pull error: %s", progress.Error)
+		}
+
+		// Send progress updates
+		if progress.ID != "" {
+			layer := parseLayerProgress(progress, layerProgress)
+			// Truncate layer ID to 12 characters if longer, otherwise use full ID
+			layerIDDisplay := progress.ID
+			if len(progress.ID) > 12 {
+				layerIDDisplay = progress.ID[:12]
+			}
+			progressChan <- streaming.ProgressEvent{
+				Type:      "layer_download",
+				Message:   fmt.Sprintf("Layer %s: %s", layerIDDisplay, progress.Status),
+				Timestamp: time.Now().Format(time.RFC3339),
+				Data:      layer,
+			}
+		} else {
+			// Overall status messages
+			progressChan <- streaming.ProgressEvent{
+				Type:      "image_pull",
+				Message:   progress.Status,
+				Timestamp: time.Now().Format(time.RFC3339),
+			}
+		}
+	}
+
+	return nil
+}
+
+// parseLayerProgress parses and updates layer progress information
+func parseLayerProgress(dockerProgress DockerPullProgress, layerMap map[string]*streaming.LayerProgress) *streaming.LayerProgress {
+	layerID := dockerProgress.ID
+	if layerMap[layerID] == nil {
+		layerMap[layerID] = &streaming.LayerProgress{LayerID: layerID}
+	}
+
+	layer := layerMap[layerID]
+	layer.Status = dockerProgress.Status
+	layer.Current = dockerProgress.ProgressDetail.Current
+	layer.Total = dockerProgress.ProgressDetail.Total
+
+	if layer.Total > 0 {
+		layer.Progress = int((layer.Current * 100) / layer.Total)
+	}
+
+	return layer
 }
 
 // ContainerPortBinding represents a port binding for container creation
@@ -216,6 +314,81 @@ func (c *Client) UpdateContainer(ctx context.Context, containerID, containerName
 
 	// Step 5: Start the new container
 	log.Info().Str("container", newContainerID).Msg("Starting new container")
+	startCtx, startCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer startCancel()
+
+	if err := c.cli.ContainerStart(startCtx, newContainerID, container.StartOptions{}); err != nil {
+		return "", fmt.Errorf("failed to start new container (old container removed): %w", err)
+	}
+
+	log.Info().Str("old_id", containerID).Str("new_id", newContainerID).Msg("Container updated successfully")
+	return newContainerID, nil
+}
+
+// UpdateContainerWithProgress updates a container to the latest image version with progress streaming
+func (c *Client) UpdateContainerWithProgress(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, progressChan chan<- streaming.ProgressEvent) (string, error) {
+	log.Info().Str("container", containerName).Str("image", imageName).Msg("Updating container to latest image with progress")
+
+	// Step 1: Pull the latest image with progress
+	progressChan <- streaming.ProgressEvent{
+		Type:      "image_pull",
+		Message:   fmt.Sprintf("Pulling latest image: %s", imageName),
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	if err := c.PullImageWithProgress(ctx, imageName, progressChan); err != nil {
+		log.Warn().Err(err).Msg("Failed to pull image, will try with local image")
+		// Continue anyway - maybe the local image is good enough
+	}
+
+	// Step 2: Stop the container if it's running
+	progressChan <- streaming.ProgressEvent{
+		Type:      "container_stop",
+		Message:   "Stopping old container...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	stopCtx, stopCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer stopCancel()
+
+	timeout := 10
+	if err := c.cli.ContainerStop(stopCtx, containerID, container.StopOptions{
+		Timeout: &timeout,
+	}); err != nil {
+		// Ignore error if container is already stopped
+		log.Debug().Err(err).Msg("Container stop failed (may already be stopped)")
+	}
+
+	// Step 3: Remove the old container
+	progressChan <- streaming.ProgressEvent{
+		Type:      "container_remove",
+		Message:   "Removing old container...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	if err := c.RemoveContainer(ctx, containerID); err != nil {
+		return "", fmt.Errorf("failed to remove old container: %w", err)
+	}
+
+	// Step 4: Create new container with the same configuration
+	progressChan <- streaming.ProgressEvent{
+		Type:      "container_create",
+		Message:   "Creating new container...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	newContainerID, err := c.CreateContainer(ctx, containerName, imageName, portBindings, volumes, env)
+	if err != nil {
+		return "", fmt.Errorf("failed to create new container (old container removed): %w", err)
+	}
+
+	// Step 5: Start the new container
+	progressChan <- streaming.ProgressEvent{
+		Type:      "container_start",
+		Message:   "Starting new container...",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
 	startCtx, startCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer startCancel()
 
