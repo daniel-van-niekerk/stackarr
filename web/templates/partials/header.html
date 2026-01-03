@@ -1,0 +1,24 @@
+{{define "header"}}
+<div class="header">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <img src="/static/logo.png" alt="StackArr" style="height: 40px;">
+        <h1>{{.PageTitle}}</h1>
+    </div>
+    <div class="header-actions">
+        {{if .ShowUserBadge}}
+        <div class="user-badge">
+            <span class="user-badge-label">Logged in as:</span>
+            <span class="user-badge-name">{{.Username}}</span>
+        </div>
+        <form method="POST" action="/preferences/toggle-dark-mode" style="margin: 0;">
+            <button type="submit" class="btn-theme-toggle" title="Toggle dark mode">{{if .DarkMode}}☀️{{else}}🌙{{end}}</button>
+        </form>
+        <form method="POST" action="/logout" style="margin: 0;">
+            <button type="submit" class="btn-logout">Logout</button>
+        </form>
+        {{else if .ShowBackButton}}
+        <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+        {{end}}
+    </div>
+</div>
+{{end}}

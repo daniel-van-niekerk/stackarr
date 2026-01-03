@@ -103,8 +103,28 @@ func main() {
 	handlers.AppVersion = Version
 	log.Info().Str("version", Version).Msg("Application version")
 
-	// Load HTML templates
-	tmpl := template.Must(template.ParseFiles(
+	// Create template with custom functions
+	funcMap := template.FuncMap{
+		"dict": func(values ...interface{}) map[string]interface{} {
+			if len(values)%2 != 0 {
+				panic("dict requires an even number of arguments")
+			}
+			dict := make(map[string]interface{})
+			for i := 0; i < len(values); i += 2 {
+				key := values[i].(string)
+				dict[key] = values[i+1]
+			}
+			return dict
+		},
+	}
+
+	// Load HTML templates (partials first, then main templates)
+	tmpl := template.Must(template.New("").Funcs(funcMap).ParseFiles(
+		// Partials
+		"web/templates/partials/head.html",
+		"web/templates/partials/header.html",
+		"web/templates/partials/loading.html",
+		// Main templates
 		"web/templates/login.html",
 		"web/templates/setup.html",
 		"web/templates/dashboard.html",

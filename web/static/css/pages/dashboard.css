@@ -1,0 +1,37 @@
+/* Dashboard page specific styles */
+
+.docker-guide {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.docker-guide h3 {
+    color: #667eea;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.docker-guide ol {
+    margin-left: 2rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+}
+
+.docker-guide li {
+    margin-bottom: 0.5rem;
+}
+
+.docker-guide code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+body.dark-mode .docker-guide code {
+    background: rgba(255, 255, 255, 0.1);
+}

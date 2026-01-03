@@ -227,32 +227,6 @@ You can change the port by setting the `PORT` environment variable:
 PORT=3000 ./stackarr
 ```
 
-## Architecture
-
-StackArr is built with:
-
-- **Backend**: Go 1.21+ with Chi router
-- **Database**: SQLite (pure Go implementation, no CGO)
-- **Frontend**: HTML templates with HTMX for dynamic updates
-- **Docker Integration**: Official Docker SDK for Go
-- **Authentication**: Session-based with bcrypt password hashing
-
-### Project Structure
-
-```
-stackarr/
-├── cmd/stackarr/              # Application entry point
-├── internal/
-│   ├── auth/                  # Authentication & sessions
-│   ├── database/              # Database models & migrations
-│   ├── docker/                # Docker client wrapper
-│   └── handlers/              # HTTP handlers
-├── web/
-│   ├── static/                # CSS, JS, images
-│   └── templates/             # HTML templates
-└── templates/                 # Docker-compose templates
-```
-
 ## Development
 
 ### Building from Source

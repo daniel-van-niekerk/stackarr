@@ -1,0 +1,46 @@
+/* Theme variables - light and dark mode */
+
+:root {
+    --bg-primary: #f5f7fa;
+    --bg-secondary: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+    --border-color: #e0e0e0;
+    --shadow: rgba(0,0,0,0.1);
+    --shadow-hover: rgba(0,0,0,0.15);
+    --input-border: #e0e0e0;
+    --section-border: #f0f0f0;
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+body.dark-mode {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
+    --border-color: #404040;
+    --shadow: rgba(0,0,0,0.3);
+    --shadow-hover: rgba(0,0,0,0.5);
+    --input-border: #404040;
+    --section-border: #404040;
+}
+
+/* Status colors - consistent across themes */
+:root {
+    --status-success: #4caf50;
+    --status-error: #f44336;
+    --status-warning: #ff9800;
+    --status-info: #2196f3;
+    --status-purple: #9c27b0;
+
+    --badge-success-bg: #e8f5e9;
+    --badge-success-fg: #4caf50;
+    --badge-error-bg: #ffebee;
+    --badge-error-fg: #f44336;
+    --badge-info-bg: #e3f2fd;
+    --badge-info-fg: #2196f3;
+    --badge-purple-bg: #f3e5f5;
+    --badge-purple-fg: #9c27b0;
+}
