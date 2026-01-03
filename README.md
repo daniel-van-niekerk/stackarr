@@ -199,6 +199,29 @@ RESET_USER=confirm-delete-user ./stackarr
 - **Edit** - Modify container configuration (requires restart)
 - **Delete** - Remove container and its docker-compose file
 
+### Backup & Restore
+
+StackArr includes built-in backup and restore functionality to protect your configuration and database:
+
+**Creating a Backup**
+1. Click the "Backup & Restore" button in the status bar
+2. Click "Download Backup" to create and download a backup file
+3. The backup includes your database and all container configurations
+4. Save the file somewhere safe
+
+**Restoring from a Backup**
+1. Click the "Backup & Restore" button in the status bar
+2. Select a backup file (.zip) to upload
+3. Click "Restore Backup"
+4. All containers will be stopped and your configuration restored
+5. A safety backup of your current data is automatically created before the restore
+
+**Important Notes**
+- Restoring will stop all running containers
+- The restore process creates an automatic safety backup in case something goes wrong
+- Your original data is preserved if the restore fails
+- Both the backup file and restore process handle database consistency automatically
+
 ### Dark Mode
 
 Toggle between light and dark themes using the sun/moon button in the header. Your preference is saved per user.
