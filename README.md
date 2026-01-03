@@ -284,10 +284,8 @@ server {
 
 - [x] Asynchronous container create/update progress
 - [x] User recovery
-- [ ] Container logs viewer
-- [ ] Backup/restore functionality
-- [ ] Volume browser
-- [ ] Image update notifications
+- [x] Container logs viewer
+- [x] Backup/restore functionality
 
 ## Contributing
 

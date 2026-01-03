@@ -1,0 +1,52 @@
+{{define "backup-modal"}}
+<div class="backup-modal" id="backupModal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Backup & Restore</h3>
+            <button class="close-btn" onclick="closeBackupModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Backup Section -->
+            <div class="backup-section" id="backupSection">
+                <h4>Create Backup</h4>
+                <p class="info-text">
+                    <i data-feather="info"></i>
+                    Backup includes your database and all container configurations.
+                </p>
+                <button id="createBackupBtn" class="btn-primary" onclick="handleCreateBackup()">
+                    <i data-feather="download"></i> Download Backup
+                </button>
+            </div>
+
+            <div class="modal-divider"></div>
+
+            <!-- Restore Section -->
+            <div class="restore-section" id="restoreSection">
+                <h4>Restore from Backup</h4>
+                <p class="warning-text">
+                    <i data-feather="alert-triangle"></i>
+                    <strong>WARNING:</strong> Restoring will stop all containers and replace your current configuration!
+                </p>
+                <div class="file-upload-group">
+                    <input type="file" id="backupFileInput" accept=".zip" onchange="handleFileSelect(event)">
+                    <label for="backupFileInput" class="file-upload-label">
+                        <i data-feather="upload"></i> Choose backup file
+                    </label>
+                </div>
+                <button id="restoreBackupBtn" class="btn-danger" onclick="handleRestoreBackup()" disabled>
+                    <i data-feather="alert-octagon"></i> Restore Backup
+                </button>
+            </div>
+
+            <!-- Progress Display (hidden by default) -->
+            <div id="backupProgress" style="display: none;" class="backup-progress">
+                <div class="progress-status" id="backupStatus">Initializing...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="backupProgressBar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

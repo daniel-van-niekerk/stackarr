@@ -1,0 +1,265 @@
+/* Backup Modal Styling */
+
+.backup-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+}
+
+.backup-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.backup-modal .modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.backup-modal .modal-content {
+    position: relative;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.backup-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.backup-modal .modal-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.backup-modal .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.backup-modal .close-btn:hover {
+    background: var(--hover-bg);
+}
+
+.backup-modal .modal-body {
+    padding: 1.5rem;
+}
+
+/* Backup Section */
+.backup-section,
+.restore-section {
+    margin-bottom: 1rem;
+}
+
+.backup-section h4,
+.restore-section h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.info-text,
+.warning-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.info-text {
+    background: var(--info-bg, rgba(59, 130, 246, 0.1));
+    color: var(--info-text, rgb(59, 130, 246));
+    border: 1px solid var(--info-border, rgba(59, 130, 246, 0.2));
+}
+
+.warning-text {
+    background: var(--warning-bg, rgba(239, 68, 68, 0.1));
+    color: var(--warning-text, rgb(220, 38, 38));
+    border: 1px solid var(--warning-border, rgba(239, 68, 68, 0.2));
+}
+
+.info-text svg,
+.warning-text svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* Buttons */
+.backup-modal .btn-primary,
+.backup-modal .btn-danger {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+}
+
+.backup-modal .btn-primary {
+    background: var(--primary-color, rgb(59, 130, 246));
+    color: white;
+}
+
+.backup-modal .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover, rgb(37, 99, 235));
+}
+
+.backup-modal .btn-danger {
+    background: var(--danger-color, rgb(239, 68, 68));
+    color: white;
+}
+
+.backup-modal .btn-danger:hover:not(:disabled) {
+    background: var(--danger-hover, rgb(220, 38, 38));
+}
+
+.backup-modal .btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.backup-modal svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* File Upload */
+.file-upload-group {
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+#backupFileInput {
+    display: none;
+}
+
+.file-upload-label {
+    display: block;
+    padding: 1rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--hover-bg);
+}
+
+.file-upload-label:hover {
+    border-color: var(--primary-color, rgb(59, 130, 246));
+    background: var(--primary-bg, rgba(59, 130, 246, 0.05));
+}
+
+.file-upload-label.file-selected {
+    border-color: var(--success-color, rgb(34, 197, 94));
+    background: var(--success-bg, rgba(34, 197, 94, 0.1));
+    border-style: solid;
+    color: var(--success-color, rgb(34, 197, 94));
+}
+
+.file-upload-label.file-selected:hover {
+    border-color: var(--success-color, rgb(34, 197, 94));
+    background: var(--success-bg, rgba(34, 197, 94, 0.15));
+}
+
+.file-upload-label svg {
+    display: block;
+    margin: 0 auto 0.5rem;
+    width: 24px;
+    height: 24px;
+}
+
+/* Modal Divider */
+.modal-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 1.5rem 0;
+}
+
+/* Progress Display */
+.backup-progress {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.progress-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    min-height: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color, rgb(59, 130, 246));
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+/* Dark Mode Support */
+:root[data-theme="dark"] .backup-modal .modal-content {
+    background: var(--bg-primary, rgb(30, 30, 30));
+}
+
+:root[data-theme="dark"] .info-text {
+    --info-bg: rgba(59, 130, 246, 0.15);
+    --info-text: rgb(147, 197, 253);
+    --info-border: rgba(59, 130, 246, 0.3);
+}
+
+:root[data-theme="dark"] .warning-text {
+    --warning-bg: rgba(239, 68, 68, 0.15);
+    --warning-text: rgb(248, 113, 113);
+    --warning-border: rgba(239, 68, 68, 0.3);
+}
