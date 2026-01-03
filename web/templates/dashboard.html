@@ -6,6 +6,7 @@
     {{template "loading-overlay" .}}
     {{template "log-modal" .}}
     {{template "confirm-modal" .}}
+    {{template "backup-modal" .}}
     {{template "header" (dict "PageTitle" "StackArr" "Username" .Username "DarkMode" .DarkMode "ShowUserBadge" true)}}
 
     <div class="container">
@@ -80,21 +81,31 @@ docker ps</code></div>
                 <span class="status-ok">✅ Docker Running</span>
                 <span style="color: #999;">v{{.DockerVersion}}</span>
             </div>
-            <div style="display: flex; gap: 2rem; align-items: center;">
+            <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
                 <div style="color: #666; font-size: 0.9rem; display: flex; gap: 2rem;">
                     <div>Managed: {{len .ManagedContainers}}</div>
                     <div>External: {{len .ExternalContainers}}</div>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;" class="btn-container">
+                    <button onclick="openBackupModal()" class="quick-add-btn">
+                        <i data-feather="download"></i>
+                        <span class="btn-text">Backup & Restore</span>
+                    </button>
                     {{if not .ShowQuickStart}}
                     <form method="POST" action="/preferences/toggle-quickstart" style="margin: 0;">
-                        <button type="submit" class="quick-add-btn" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Show Quick Start</button>
+                        <button type="submit" class="quick-add-btn">
+                            <i data-feather="zap"></i>
+                            <span class="btn-text">Quick Start</span>
+                        </button>
                     </form>
                     {{end}}
                     {{if .ExternalContainers}}
                     {{if not .ShowExternalContainers}}
                     <form method="POST" action="/preferences/toggle-external" style="margin: 0;">
-                        <button type="submit" class="quick-add-btn" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Show External</button>
+                        <button type="submit" class="quick-add-btn">
+                            <i data-feather="package"></i>
+                            <span class="btn-text">External</span>
+                        </button>
                     </form>
                     {{end}}
                     {{end}}
@@ -358,6 +369,7 @@ docker ps</code></div>
     <script src="/static/js/pages/confirm-dialog.js"></script>
     <script src="/static/js/pages/dashboard.js"></script>
     <script src="/static/js/pages/log-viewer.js"></script>
+    <script src="/static/js/pages/backup.js"></script>
     <script>
         // Initialize Feather Icons
         document.addEventListener('DOMContentLoaded', function() {

@@ -49,6 +49,13 @@ func (db *DB) Close() error {
 	return db.DB.Close()
 }
 
+// CheckpointWAL checkpoints the WAL (Write-Ahead Log) file
+// This consolidates WAL changes into the main database file
+func (db *DB) CheckpointWAL() error {
+	_, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+	return err
+}
+
 // InitSchema creates the initial database schema
 func (db *DB) InitSchema() error {
 	// Create users table

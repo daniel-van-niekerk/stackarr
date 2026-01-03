@@ -126,6 +126,7 @@ func main() {
 		"web/templates/partials/loading.html",
 		"web/templates/partials/log-modal.html",
 		"web/templates/partials/confirm-modal.html",
+		"web/templates/partials/backup-modal.html",
 		// Main templates
 		"web/templates/login.html",
 		"web/templates/setup.html",
@@ -151,6 +152,11 @@ func main() {
 	}
 	streamingHandlers := &handlers.StreamingHandlers{
 		ProgressManager: progressManager,
+	}
+	backupHandlers := &handlers.BackupHandlers{
+		DB:              db.DB,
+		ProgressManager: progressManager,
+		DataDir:         "./data",
 	}
 
 	// Create Chi router
@@ -198,6 +204,12 @@ func main() {
 
 		// SSE progress streaming endpoint
 		r.Get("/containers/progress/{operationID}", streamingHandlers.StreamProgress)
+
+		// Backup & Restore endpoints
+		r.Post("/backup/create", backupHandlers.CreateBackup)
+		r.Get("/backup/download/{filename}", backupHandlers.DownloadBackupFile)
+		r.Post("/backup/upload", backupHandlers.UploadBackup)
+		r.Post("/backup/restore", backupHandlers.RestoreBackup)
 
 		r.Post("/logout", authHandlers.HandleLogout)
 	})
