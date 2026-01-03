@@ -15,6 +15,7 @@ type User struct {
 	PasswordHash            string
 	ShowExternalContainers  bool
 	DarkMode                bool
+	ShowQuickStart          bool
 }
 
 var (
@@ -59,10 +60,10 @@ func CreateUser(db *sql.DB, username, password string) error {
 
 // GetUserByUsername retrieves a user by username
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
-	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1), COALESCE(dark_mode, 0) FROM users WHERE username = ?`
+	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1), COALESCE(dark_mode, 0), COALESCE(show_quickstart, 1) FROM users WHERE username = ?`
 
 	user := &User{}
-	err := db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers, &user.DarkMode)
+	err := db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers, &user.DarkMode, &user.ShowQuickStart)
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -75,10 +76,10 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 
 // GetUserByID retrieves a user by ID
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
-	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1), COALESCE(dark_mode, 0) FROM users WHERE id = ?`
+	query := `SELECT id, username, password_hash, COALESCE(show_external_containers, 1), COALESCE(dark_mode, 0), COALESCE(show_quickstart, 1) FROM users WHERE id = ?`
 
 	user := &User{}
-	err := db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers, &user.DarkMode)
+	err := db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.ShowExternalContainers, &user.DarkMode, &user.ShowQuickStart)
 	if err == sql.ErrNoRows {
 		return nil, ErrUserNotFound
 	}
@@ -130,6 +131,16 @@ func UpdateDarkMode(db *sql.DB, userID int64, darkMode bool) error {
 	_, err := db.Exec(query, darkMode, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update dark mode: %w", err)
+	}
+	return nil
+}
+
+// UpdateQuickStartPreference updates a user's quickstart preference
+func UpdateQuickStartPreference(db *sql.DB, userID int64, showQuickStart bool) error {
+	query := `UPDATE users SET show_quickstart = ? WHERE id = ?`
+	_, err := db.Exec(query, showQuickStart, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update quickstart preference: %w", err)
 	}
 	return nil
 }

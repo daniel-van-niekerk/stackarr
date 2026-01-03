@@ -1,0 +1,26 @@
+{{define "log-modal"}}
+<div class="log-modal" id="logModal">
+    <div class="log-modal-backdrop" onclick="closeLogModal()"></div>
+    <div class="log-modal-content">
+        <div class="log-modal-header">
+            <h3 class="log-modal-title">Container Logs</h3>
+            <button class="log-modal-close" onclick="closeLogModal()">&times;</button>
+        </div>
+        <div class="log-modal-toolbar">
+            <span id="logContainerName" class="log-container-name"></span>
+            <div class="log-modal-actions">
+                <button class="btn-secondary" onclick="refreshLogs()">↻ Refresh</button>
+                <button class="btn-secondary" onclick="downloadLogs()">⬇ Download</button>
+            </div>
+        </div>
+        <div class="log-modal-body">
+            <div id="logLoadingSpinner" class="log-loading" style="display: none;">
+                <div class="spinner-small"></div>
+                <span>Loading logs...</span>
+            </div>
+            <pre id="logContent" class="log-content"></pre>
+            <div id="logError" class="log-error" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+{{end}}

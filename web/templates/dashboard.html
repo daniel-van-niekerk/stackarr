@@ -4,6 +4,8 @@
 {{template "head" (dict "Title" "Dashboard" "PageCSS" "pages/dashboard.css")}}
 <body{{if .DarkMode}} class="dark-mode"{{end}}>
     {{template "loading-overlay" .}}
+    {{template "log-modal" .}}
+    {{template "confirm-modal" .}}
     {{template "header" (dict "PageTitle" "StackArr" "Username" .Username "DarkMode" .DarkMode "ShowUserBadge" true)}}
 
     <div class="container">
@@ -22,21 +24,21 @@
 
             <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
                 <span style="display: inline-block; background: #667eea; color: white; width: 2rem; height: 2rem; border-radius: 50%; text-align: center; line-height: 2rem; font-weight: bold; margin-right: 0.5rem;">1</span>
-                <strong style="color: var(--text-primary);">Download and run the official Docker install script:</strong>
+                <strong style="color: #333333;">Download and run the official Docker install script:</strong>
                 <div style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; margin: 1rem 0;"><code style="display: block; white-space: pre-wrap;">curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh</code></div>
             </div>
 
             <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
                 <span style="display: inline-block; background: #667eea; color: white; width: 2rem; height: 2rem; border-radius: 50%; text-align: center; line-height: 2rem; font-weight: bold; margin-right: 0.5rem;">2</span>
-                <strong style="color: var(--text-primary);">Add your user to the docker group (so you don't need sudo):</strong>
+                <strong style="color: #333333;">Add your user to the docker group (so you don't need sudo):</strong>
                 <div style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; margin: 1rem 0;"><code style="display: block; white-space: pre-wrap;">sudo usermod -aG docker $USER
 newgrp docker</code></div>
             </div>
 
             <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
                 <span style="display: inline-block; background: #667eea; color: white; width: 2rem; height: 2rem; border-radius: 50%; text-align: center; line-height: 2rem; font-weight: bold; margin-right: 0.5rem;">3</span>
-                <strong style="color: var(--text-primary);">Verify Docker is running:</strong>
+                <strong style="color: #333333;">Verify Docker is running:</strong>
                 <div style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; margin: 1rem 0;"><code style="display: block; white-space: pre-wrap;">docker --version
 docker ps</code></div>
                 <p style="margin-top: 0.5rem; color: var(--text-secondary);">If you see version info and no errors, Docker is ready!</p>
@@ -83,20 +85,31 @@ docker ps</code></div>
                     <div>Managed: {{len .ManagedContainers}}</div>
                     <div>External: {{len .ExternalContainers}}</div>
                 </div>
-                {{if .ExternalContainers}}
-                {{if not .ShowExternalContainers}}
-                <form method="POST" action="/preferences/toggle-external" style="margin: 0;">
-                    <button type="submit" class="quick-add-btn" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Show External</button>
-                </form>
-                {{end}}
-                {{end}}
+                <div style="display: flex; gap: 0.5rem;">
+                    {{if not .ShowQuickStart}}
+                    <form method="POST" action="/preferences/toggle-quickstart" style="margin: 0;">
+                        <button type="submit" class="quick-add-btn" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Show Quick Start</button>
+                    </form>
+                    {{end}}
+                    {{if .ExternalContainers}}
+                    {{if not .ShowExternalContainers}}
+                    <form method="POST" action="/preferences/toggle-external" style="margin: 0;">
+                        <button type="submit" class="quick-add-btn" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Show External</button>
+                    </form>
+                    {{end}}
+                    {{end}}
+                </div>
             </div>
         </div>
 
         <!-- Pre-configured Services Section -->
+        {{if .ShowQuickStart}}
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Quick Start</h2>
+                <form method="POST" action="/preferences/toggle-quickstart" style="margin: 0;">
+                    <button type="submit" class="quick-add-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Hide Quick Start</button>
+                </form>
             </div>
 
             <div class="services-grid">
@@ -191,6 +204,7 @@ docker ps</code></div>
                 </div>
             </div>
         </div>
+        {{end}}
 
         <!-- Managed Containers Section -->
         <div class="section">
@@ -229,39 +243,41 @@ docker ps</code></div>
                             </div>
                         {{else if .DockerID}}
                             {{if eq .Status "running"}}
-                            <form method="GET" action="/containers/add" style="flex: 1;">
+                            <form method="GET" action="/containers/add" style="display: inline;">
                                 <input type="hidden" name="id" value="{{.ID}}">
-                                <button type="submit" class="btn" style="width: 100%; background: #2196f3; color: white;">Edit</button>
+                                <button type="submit" class="icon-btn edit" title="Edit"></button>
                             </form>
-                            <form method="POST" action="/containers/update?id={{.ID}}" style="flex: 1;">
-                                <button type="submit" class="btn btn-update" style="width: 100%;">Update</button>
+                            <form method="POST" action="/containers/update?id={{.ID}}" style="display: none;" id="updateForm{{.ID}}">
                             </form>
-                            <form method="POST" action="/containers/stop?id={{.DockerID}}" style="flex: 1;">
-                                <button type="submit" class="btn btn-stop" style="width: 100%;">Stop</button>
+                            <button type="button" class="icon-btn update" title="Update" onclick="showConfirmDialog('update', '{{.Name}}', document.getElementById('updateForm{{.ID}}'))"></button>
+                            <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.DockerID}}', '{{.Name}}')"></button>
+                            <form method="POST" action="/containers/stop?id={{.DockerID}}" style="display: none;" id="stopForm{{.DockerID}}">
                             </form>
-                            <form method="POST" action="/containers/restart?id={{.DockerID}}" style="flex: 1;">
-                                <button type="submit" class="btn btn-restart" style="width: 100%;">Restart</button>
+                            <button type="button" class="icon-btn stop" title="Stop" onclick="showConfirmDialog('stop', '{{.Name}}', document.getElementById('stopForm{{.DockerID}}'))"></button>
+                            <form method="POST" action="/containers/restart?id={{.DockerID}}" style="display: none;" id="restartForm{{.DockerID}}">
                             </form>
+                            <button type="button" class="icon-btn restart" title="Restart" onclick="showConfirmDialog('restart', '{{.Name}}', document.getElementById('restartForm{{.DockerID}}'))"></button>
                             {{else}}
-                            <form method="GET" action="/containers/add" style="flex: 1;">
+                            <form method="GET" action="/containers/add" style="display: inline;">
                                 <input type="hidden" name="id" value="{{.ID}}">
-                                <button type="submit" class="btn" style="width: 100%; background: #2196f3; color: white;">Edit</button>
+                                <button type="submit" class="icon-btn edit" title="Edit"></button>
                             </form>
-                            <form method="POST" action="/containers/update?id={{.ID}}" style="flex: 1;">
-                                <button type="submit" class="btn btn-update" style="width: 100%;">Update</button>
+                            <form method="POST" action="/containers/update?id={{.ID}}" style="display: none;" id="updateForm{{.ID}}">
                             </form>
-                            <form method="POST" action="/containers/start?id={{.DockerID}}" style="flex: 1;">
-                                <button type="submit" class="btn btn-start" style="width: 100%;">Start</button>
+                            <button type="button" class="icon-btn update" title="Update" onclick="showConfirmDialog('update', '{{.Name}}', document.getElementById('updateForm{{.ID}}'))"></button>
+                            <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.DockerID}}', '{{.Name}}')"></button>
+                            <form method="POST" action="/containers/start?id={{.DockerID}}" style="display: none;" id="startForm{{.DockerID}}">
                             </form>
+                            <button type="button" class="icon-btn start" title="Start" onclick="showConfirmDialog('start', '{{.Name}}', document.getElementById('startForm{{.DockerID}}'))"></button>
                             {{end}}
                         {{else}}
                             <div style="flex: 1; padding: 0.6rem; background: #fff3cd; color: #856404; border-radius: 6px; text-align: center; font-size: 0.85rem;">
                                 Failed to create - check logs
                             </div>
                         {{end}}
-                        <form method="POST" action="/containers/delete/{{.ID}}" style="flex: 1;" onsubmit="return confirm('Are you sure you want to delete {{.Name}}? This will stop and remove the container.');">
-                            <button type="submit" class="btn btn-delete" style="width: 100%;">Delete</button>
+                        <form method="POST" action="/containers/delete/{{.ID}}" style="display: none;" id="deleteForm{{.ID}}">
                         </form>
+                        <button type="button" class="icon-btn delete" title="Delete" onclick="showConfirmDialog('delete', '{{.Name}}', document.getElementById('deleteForm{{.ID}}'))"></button>
                     </div>
                 </div>
                 {{end}}
@@ -300,16 +316,18 @@ docker ps</code></div>
                     </div>
                     <div class="card-actions">
                         {{if eq .State "running"}}
-                        <form method="POST" action="/containers/stop?id={{.ID}}" style="flex: 1;">
-                            <button type="submit" class="btn btn-stop" style="width: 100%;">Stop</button>
+                        <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.ID}}', '{{.Name}}')"></button>
+                        <form method="POST" action="/containers/stop?id={{.ID}}" style="display: none;" id="extStopForm{{.ID}}">
                         </form>
-                        <form method="POST" action="/containers/restart?id={{.ID}}" style="flex: 1;">
-                            <button type="submit" class="btn btn-restart" style="width: 100%;">Restart</button>
+                        <button type="button" class="icon-btn stop" title="Stop" onclick="showConfirmDialog('stop', '{{.Name}}', document.getElementById('extStopForm{{.ID}}'))"></button>
+                        <form method="POST" action="/containers/restart?id={{.ID}}" style="display: none;" id="extRestartForm{{.ID}}">
                         </form>
+                        <button type="button" class="icon-btn restart" title="Restart" onclick="showConfirmDialog('restart', '{{.Name}}', document.getElementById('extRestartForm{{.ID}}'))"></button>
                         {{else}}
-                        <form method="POST" action="/containers/start?id={{.ID}}" style="flex: 1;">
-                            <button type="submit" class="btn btn-start" style="width: 100%;">Start</button>
+                        <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.ID}}', '{{.Name}}')"></button>
+                        <form method="POST" action="/containers/start?id={{.ID}}" style="display: none;" id="extStartForm{{.ID}}">
                         </form>
+                        <button type="button" class="icon-btn start" title="Start" onclick="showConfirmDialog('start', '{{.Name}}', document.getElementById('extStartForm{{.ID}}'))"></button>
                         {{end}}
                     </div>
                 </div>
@@ -337,7 +355,34 @@ docker ps</code></div>
     </div>
 
     <script src="/static/js/progress.js"></script>
+    <script src="/static/js/pages/confirm-dialog.js"></script>
     <script src="/static/js/pages/dashboard.js"></script>
+    <script src="/static/js/pages/log-viewer.js"></script>
+    <script>
+        // Initialize Feather Icons
+        document.addEventListener('DOMContentLoaded', function() {
+            feather.replace();
+
+            // Add icon SVGs to icon buttons
+            document.querySelectorAll('.icon-btn').forEach(function(btn) {
+                let iconName = '';
+                if (btn.classList.contains('edit')) iconName = 'edit';
+                else if (btn.classList.contains('update')) iconName = 'refresh-cw';
+                else if (btn.classList.contains('logs')) iconName = 'file-text';
+                else if (btn.classList.contains('start')) iconName = 'play';
+                else if (btn.classList.contains('stop')) iconName = 'square';
+                else if (btn.classList.contains('restart')) iconName = 'rotate-cw';
+                else if (btn.classList.contains('delete')) iconName = 'trash-2';
+
+                if (iconName) {
+                    btn.innerHTML = '<i data-feather="' + iconName + '"></i>';
+                }
+            });
+
+            // Replace icons again after adding them
+            feather.replace();
+        });
+    </script>
 </body>
 </html>
 {{end}}

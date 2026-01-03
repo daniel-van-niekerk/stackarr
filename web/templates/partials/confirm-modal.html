@@ -1,0 +1,18 @@
+{{define "confirm-modal"}}
+<div class="confirm-modal" id="confirmModal">
+    <div class="confirm-modal-backdrop" onclick="closeConfirmDialog()"></div>
+    <div class="confirm-modal-content">
+        <div class="confirm-modal-header">
+            <h3 class="confirm-modal-title" id="confirmTitle">Confirm Action</h3>
+            <button class="confirm-modal-close" onclick="closeConfirmDialog()">&times;</button>
+        </div>
+        <div class="confirm-modal-body">
+            <p id="confirmMessage"></p>
+        </div>
+        <div class="confirm-modal-footer">
+            <button class="btn-secondary" onclick="closeConfirmDialog()">Cancel</button>
+            <button class="btn-confirm" id="confirmButton" onclick="confirmAction()">Confirm</button>
+        </div>
+    </div>
+</div>
+{{end}}

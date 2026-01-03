@@ -124,6 +124,8 @@ func main() {
 		"web/templates/partials/head.html",
 		"web/templates/partials/header.html",
 		"web/templates/partials/loading.html",
+		"web/templates/partials/log-modal.html",
+		"web/templates/partials/confirm-modal.html",
 		// Main templates
 		"web/templates/login.html",
 		"web/templates/setup.html",
@@ -187,9 +189,11 @@ func main() {
 		r.Post("/containers/stop", dashboardHandlers.StopContainer)
 		r.Post("/containers/restart", dashboardHandlers.RestartContainer)
 		r.Post("/containers/update", dashboardHandlers.UpdateContainer)
+		r.Get("/containers/logs", dashboardHandlers.GetContainerLogs)
 
 		// User preferences
 		r.Post("/preferences/toggle-external", dashboardHandlers.ToggleExternalContainers)
+		r.Post("/preferences/toggle-quickstart", dashboardHandlers.ToggleQuickStart)
 		r.Post("/preferences/toggle-dark-mode", dashboardHandlers.ToggleDarkMode)
 
 		// SSE progress streaming endpoint

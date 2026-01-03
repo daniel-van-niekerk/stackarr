@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/daniel-van-niekerk/stackarr/internal/auth"
@@ -60,6 +61,7 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 		"ManagedContainers":      []ManagedContainer{},
 		"ExternalContainers":     []docker.ContainerInfo{},
 		"ShowExternalContainers": false,
+		"ShowQuickStart":         true,
 		"DarkMode":               false,
 		"Version":                AppVersion,
 	}
@@ -67,6 +69,7 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 	// Get user preferences
 	if user != nil {
 		data["ShowExternalContainers"] = user.ShowExternalContainers
+		data["ShowQuickStart"] = user.ShowQuickStart
 		data["DarkMode"] = user.DarkMode
 	}
 
@@ -227,6 +230,27 @@ func (h *DashboardHandlers) ToggleExternalContainers(w http.ResponseWriter, r *h
 	newValue := !user.ShowExternalContainers
 	if err := auth.UpdateUserPreference(h.DB, userID, newValue); err != nil {
 		log.Error().Err(err).Msg("Failed to update preference")
+	}
+
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// ToggleQuickStart toggles the visibility of the quickstart section
+func (h *DashboardHandlers) ToggleQuickStart(w http.ResponseWriter, r *http.Request) {
+	userID, _ := auth.GetUserSession(r)
+
+	// Get current user
+	user, err := auth.GetUserByID(h.DB, userID)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user")
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+
+	// Toggle the preference
+	newValue := !user.ShowQuickStart
+	if err := auth.UpdateQuickStartPreference(h.DB, userID, newValue); err != nil {
+		log.Error().Err(err).Msg("Failed to update quickstart preference")
 	}
 
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
@@ -449,5 +473,47 @@ func (h *DashboardHandlers) executeContainerUpdate(operationID string, container
 			"docker_id": newDockerID,
 			"redirect":  "/dashboard",
 		},
+	})
+}
+
+// GetContainerLogs handles fetching container logs
+func (h *DashboardHandlers) GetContainerLogs(w http.ResponseWriter, r *http.Request) {
+	containerID := r.URL.Query().Get("id")
+	if containerID == "" {
+		http.Error(w, "Container ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Get tail parameter (default 500)
+	tailStr := r.URL.Query().Get("tail")
+	tail := 500
+	if tailStr != "" {
+		if parsedTail, err := strconv.Atoi(tailStr); err == nil && parsedTail > 0 {
+			tail = parsedTail
+		}
+	}
+
+	ctx := context.Background()
+	client, err := docker.NewClient()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create Docker client")
+		http.Error(w, "Failed to connect to Docker", http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	logs, err := client.GetContainerLogs(ctx, containerID, tail)
+	if err != nil {
+		log.Error().Err(err).Str("container", containerID).Msg("Failed to fetch logs")
+		http.Error(w, "Failed to fetch logs", http.StatusInternalServerError)
+		return
+	}
+
+	// Return logs as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"logs":         logs,
+		"container_id": containerID,
+		"lines":        tail,
 	})
 }

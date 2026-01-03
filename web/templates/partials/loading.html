@@ -1,9 +1,11 @@
 {{define "loading-overlay"}}
 <div class="loading-overlay" id="loadingOverlay">
     <div class="progress-container">
-        <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">Processing...</div>
-        <div id="progressStatus" style="color: white; margin-top: 1rem; font-size: 0.95rem; display: none;"></div>
+        <div class="spinner-text-wrapper">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Processing...</div>
+        </div>
+        <div id="progressStatus" style="margin-top: 1rem; font-size: 0.95rem; display: none;"></div>
 
         <!-- Overall progress bar -->
         <div class="overall-progress" id="progressBarContainer" style="display: none;">
