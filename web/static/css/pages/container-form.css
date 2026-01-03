@@ -1,0 +1,17 @@
+/* Container form page specific styles */
+
+/* Header specific to form page */
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Service preview enhancements for dark mode */
+body.dark-mode .service-preview-info h3 {
+    color: var(--text-primary);
+}
+
+body.dark-mode .service-preview-info p {
+    color: var(--text-secondary);
+}

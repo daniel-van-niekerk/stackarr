@@ -1,0 +1,89 @@
+/* Login/Setup page specific styles */
+
+body {
+    background: var(--primary-gradient) !important;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    background: var(--bg-secondary);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+    margin: 0 !important;
+}
+
+.container h1 {
+    color: var(--text-primary);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800;
+    font-size: 2.5rem;
+    letter-spacing: -1px;
+}
+
+.container h2 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.container form {
+    width: 100%;
+}
+
+.container form .form-group {
+    margin-bottom: 1rem;
+}
+
+.container form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.container input[type="text"],
+.container input[type="password"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--input-border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.container input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.container button {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.container button:hover {
+    transform: translateY(-2px);
+}
+
+.error {
+    background: #ffebee;
+    border: 1px solid #ffcdd2;
+    color: #c62828;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}

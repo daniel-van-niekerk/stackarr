@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/daniel-van-niekerk/stackarr/internal/auth"
 	"github.com/daniel-van-niekerk/stackarr/internal/database"
 	"github.com/daniel-van-niekerk/stackarr/internal/docker"
+	"github.com/daniel-van-niekerk/stackarr/internal/services"
 	"github.com/daniel-van-niekerk/stackarr/internal/streaming"
 	"github.com/rs/zerolog/log"
 )
@@ -159,51 +159,26 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 	data["ManagedContainers"] = managed
 	data["ExternalContainers"] = external
 
-	// Check which pre-configured services are installed (based on image name)
-	data["HasPlex"] = false
-	data["HasSonarr"] = false
-	data["HasRadarr"] = false
-	data["HasQBittorrent"] = false
-	data["HasOverseerr"] = false
-	data["HasSabnzbd"] = false
-	data["HasProwlarr"] = false
-	data["HasBazarr"] = false
-	data["HasFilebrowser"] = false
-	data["HasHomarr"] = false
-
+	// Detect installed services efficiently using registry
+	images := make([]string, 0, len(managed))
 	for _, c := range managed {
-		// Detect service type from image name
-		if containsIgnoreCase(c.Image, "plex") {
-			data["HasPlex"] = true
-		}
-		if containsIgnoreCase(c.Image, "sonarr") {
-			data["HasSonarr"] = true
-		}
-		if containsIgnoreCase(c.Image, "radarr") {
-			data["HasRadarr"] = true
-		}
-		if containsIgnoreCase(c.Image, "qbittorrent") {
-			data["HasQBittorrent"] = true
-		}
-		if containsIgnoreCase(c.Image, "overseerr") {
-			data["HasOverseerr"] = true
-		}
-		if containsIgnoreCase(c.Image, "sabnzbd") {
-			data["HasSabnzbd"] = true
-		}
-		if containsIgnoreCase(c.Image, "prowlarr") {
-			data["HasProwlarr"] = true
-		}
-		if containsIgnoreCase(c.Image, "bazarr") {
-			data["HasBazarr"] = true
-		}
-		if containsIgnoreCase(c.Image, "filebrowser") {
-			data["HasFilebrowser"] = true
-		}
-		if containsIgnoreCase(c.Image, "homarr") {
-			data["HasHomarr"] = true
-		}
+		images = append(images, c.Image)
 	}
+
+	registry := services.NewRegistry()
+	installed := registry.DetectInstalled(images)
+
+	// Map installed services to data for template
+	data["HasPlex"] = installed["plex"]
+	data["HasSonarr"] = installed["sonarr"]
+	data["HasRadarr"] = installed["radarr"]
+	data["HasQBittorrent"] = installed["qbittorrent"]
+	data["HasOverseerr"] = installed["overseerr"]
+	data["HasSabnzbd"] = installed["sabnzbd"]
+	data["HasProwlarr"] = installed["prowlarr"]
+	data["HasBazarr"] = installed["bazarr"]
+	data["HasFilebrowser"] = installed["filebrowser"]
+	data["HasHomarr"] = installed["homarr"]
 
 	h.Templates.ExecuteTemplate(w, "dashboard.html", data)
 }
@@ -234,11 +209,6 @@ func (h *DashboardHandlers) StartContainer(w http.ResponseWriter, r *http.Reques
 
 	// Redirect back to dashboard
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-}
-
-// containsIgnoreCase checks if a string contains a substring (case-insensitive)
-func containsIgnoreCase(s, substr string) bool {
-	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
 // ToggleExternalContainers toggles the visibility of external containers
