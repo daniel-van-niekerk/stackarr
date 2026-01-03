@@ -136,6 +136,12 @@ func (db *DB) runMigrations() error {
 				ALTER TABLE users ADD COLUMN dark_mode BOOLEAN DEFAULT 0;
 			`,
 		},
+		{
+			name: "add_show_quickstart_to_users",
+			sql: `
+				ALTER TABLE users ADD COLUMN show_quickstart BOOLEAN DEFAULT 1;
+			`,
+		},
 	}
 
 	// Apply each migration

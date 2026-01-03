@@ -1,11 +1,13 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/rs/zerolog/log"
 )
 
@@ -133,4 +135,35 @@ func (c *Client) GetContainerStatus(ctx context.Context, containerID string) (st
 	}
 
 	return inspect.State.Status, nil
+}
+
+// GetContainerLogs fetches logs from a container
+// tail parameter limits the number of lines to return (e.g., 500)
+func (c *Client) GetContainerLogs(ctx context.Context, containerID string, tail int) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	options := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Tail:       fmt.Sprintf("%d", tail),
+		Timestamps: true,
+	}
+
+	reader, err := c.cli.ContainerLogs(ctx, containerID, options)
+	if err != nil {
+		return "", fmt.Errorf("failed to get container logs: %w", err)
+	}
+	defer reader.Close()
+
+	// Demultiplex stdout and stderr streams
+	var stdout, stderr bytes.Buffer
+	if _, err := stdcopy.StdCopy(&stdout, &stderr, reader); err != nil {
+		return "", fmt.Errorf("failed to read logs: %w", err)
+	}
+
+	// Combine stdout and stderr
+	combined := stdout.String() + stderr.String()
+	log.Debug().Str("container", containerID).Int("lines", tail).Msg("Retrieved container logs")
+	return combined, nil
 }

@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadingText.textContent = 'Restarting container...';
                 loadingOverlay.classList.add('active');
             } else if (action.includes('/containers/delete')) {
-                // Don't show spinner for delete, let the confirm dialog handle it
-                return;
+                loadingText.textContent = 'Deleting container...';
+                loadingOverlay.classList.add('active');
             }
         });
     });
