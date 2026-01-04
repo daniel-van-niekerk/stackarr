@@ -51,6 +51,70 @@ function addEnvVar() {
     list.appendChild(item);
 }
 
+// Detect browser timezone
+function getBrowserTimezone() {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (e) {
+        return 'America/New_York'; // Fallback if detection fails
+    }
+}
+
+// Check if TZ env var already exists
+function hasTZVariable() {
+    const envList = document.getElementById('env-list');
+    for (let item of envList.children) {
+        const keyInput = item.querySelector('input[name="env_key[]"]');
+        if (keyInput && keyInput.value === 'TZ') {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Set TZ to browser timezone if not already set or if it's the default
+function setDefaultTimezone() {
+    const timezone = getBrowserTimezone();
+    const envList = document.getElementById('env-list');
+    let tzFound = false;
+
+    // Look for existing TZ variable
+    for (let item of envList.children) {
+        const keyInput = item.querySelector('input[name="env_key[]"]');
+        const valueInput = item.querySelector('input[name="env_value[]"]');
+        if (keyInput && keyInput.value === 'TZ') {
+            tzFound = true;
+            // Replace if it's the default value, otherwise keep user's choice
+            if (valueInput.value === 'America/New_York') {
+                valueInput.value = timezone;
+            }
+            return;
+        }
+    }
+
+    // If no TZ found, add one
+    if (!tzFound) {
+        // Find the first empty row or create one
+        for (let item of envList.children) {
+            const keyInput = item.querySelector('input[name="env_key[]"]');
+            const valueInput = item.querySelector('input[name="env_value[]"]');
+            if (keyInput && !keyInput.value && !valueInput.value) {
+                keyInput.value = 'TZ';
+                valueInput.value = timezone;
+                return;
+            }
+        }
+
+        // If no empty row, add a new one
+        addEnvVar();
+        const lastItem = envList.lastElementChild;
+        const keyInput = lastItem.querySelector('input[name="env_key[]"]');
+        const valueInput = lastItem.querySelector('input[name="env_value[]"]');
+        keyInput.value = 'TZ';
+        valueInput.value = timezone;
+    }
+}
+
 // Initialize form on page load
 window.addEventListener('DOMContentLoaded', function() {
     // Add initial empty rows if none exist
@@ -67,6 +131,9 @@ window.addEventListener('DOMContentLoaded', function() {
     if (envList && envList.children.length === 0) {
         addEnvVar();
     }
+
+    // Set default timezone to browser timezone if not already set
+    setDefaultTimezone();
 
     // Handle form submission with AJAX + SSE
     const form = document.getElementById('containerForm');
