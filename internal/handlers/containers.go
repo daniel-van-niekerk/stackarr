@@ -364,8 +364,6 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
 // DeleteContainer handles deleting a container
