@@ -262,6 +262,15 @@ docker ps</code></div>
                             </form>
                             <button type="button" class="icon-btn update" title="Update" onclick="showConfirmDialog('update', '{{.Name}}', document.getElementById('updateForm{{.ID}}'))"></button>
                             <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.DockerID}}', '{{.Name}}')"></button>
+                            {{if .Ports}}
+                              {{range $index, $port := .Ports}}
+                                {{if eq $index 0}}
+                                  {{if eq $port.Protocol "tcp"}}
+                                    <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('{{$.ServiceType}}', {{$port.Host}})"></button>
+                                  {{end}}
+                                {{end}}
+                              {{end}}
+                            {{end}}
                             <form method="POST" action="/containers/stop?id={{.DockerID}}" style="display: none;" id="stopForm{{.DockerID}}">
                             </form>
                             <button type="button" class="icon-btn stop" title="Stop" onclick="showConfirmDialog('stop', '{{.Name}}', document.getElementById('stopForm{{.DockerID}}'))"></button>
@@ -277,6 +286,15 @@ docker ps</code></div>
                             </form>
                             <button type="button" class="icon-btn update" title="Update" onclick="showConfirmDialog('update', '{{.Name}}', document.getElementById('updateForm{{.ID}}'))"></button>
                             <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.DockerID}}', '{{.Name}}')"></button>
+                            {{if .Ports}}
+                              {{range $index, $port := .Ports}}
+                                {{if eq $index 0}}
+                                  {{if eq $port.Protocol "tcp"}}
+                                    <button type="button" class="icon-btn open-url disabled" title="Open URL (container stopped)" disabled></button>
+                                  {{end}}
+                                {{end}}
+                              {{end}}
+                            {{end}}
                             <form method="POST" action="/containers/start?id={{.DockerID}}" style="display: none;" id="startForm{{.DockerID}}">
                             </form>
                             <button type="button" class="icon-btn start" title="Start" onclick="showConfirmDialog('start', '{{.Name}}', document.getElementById('startForm{{.DockerID}}'))"></button>
@@ -328,6 +346,15 @@ docker ps</code></div>
                     <div class="card-actions">
                         {{if eq .State "running"}}
                         <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.ID}}', '{{.Name}}')"></button>
+                        {{if .Ports}}
+                          {{range $index, $port := .Ports}}
+                            {{if eq $index 0}}
+                              {{if eq $port.Protocol "tcp"}}
+                                <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('', '{{$port.HostPort}}')"></button>
+                              {{end}}
+                            {{end}}
+                          {{end}}
+                        {{end}}
                         <form method="POST" action="/containers/stop?id={{.ID}}" style="display: none;" id="extStopForm{{.ID}}">
                         </form>
                         <button type="button" class="icon-btn stop" title="Stop" onclick="showConfirmDialog('stop', '{{.Name}}', document.getElementById('extStopForm{{.ID}}'))"></button>
@@ -336,6 +363,15 @@ docker ps</code></div>
                         <button type="button" class="icon-btn restart" title="Restart" onclick="showConfirmDialog('restart', '{{.Name}}', document.getElementById('extRestartForm{{.ID}}'))"></button>
                         {{else}}
                         <button type="button" class="icon-btn logs" title="Logs" onclick="openLogModal('{{.ID}}', '{{.Name}}')"></button>
+                        {{if .Ports}}
+                          {{range $index, $port := .Ports}}
+                            {{if eq $index 0}}
+                              {{if eq $port.Protocol "tcp"}}
+                                <button type="button" class="icon-btn open-url disabled" title="Open URL (container stopped)" disabled></button>
+                              {{end}}
+                            {{end}}
+                          {{end}}
+                        {{end}}
                         <form method="POST" action="/containers/start?id={{.ID}}" style="display: none;" id="extStartForm{{.ID}}">
                         </form>
                         <button type="button" class="icon-btn start" title="Start" onclick="showConfirmDialog('start', '{{.Name}}', document.getElementById('extStartForm{{.ID}}'))"></button>
@@ -385,6 +421,7 @@ docker ps</code></div>
                 else if (btn.classList.contains('stop')) iconName = 'square';
                 else if (btn.classList.contains('restart')) iconName = 'rotate-cw';
                 else if (btn.classList.contains('delete')) iconName = 'trash-2';
+                else if (btn.classList.contains('open-url')) iconName = 'external-link';
 
                 if (iconName) {
                     btn.innerHTML = '<i data-feather="' + iconName + '"></i>';
@@ -394,6 +431,20 @@ docker ps</code></div>
             // Replace icons again after adding them
             feather.replace();
         });
+
+        // Open container URL in new tab
+        function openContainerURL(serviceType, port) {
+            const hostname = window.location.hostname;
+            let url = `http://${hostname}:${port}`;
+
+            // Special case for Plex - append /web path
+            if (serviceType === 'plex') {
+                url += '/web';
+            }
+
+            // Open in new tab
+            window.open(url, '_blank');
+        }
     </script>
 </body>
 </html>

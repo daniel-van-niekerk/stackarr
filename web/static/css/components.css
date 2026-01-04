@@ -403,6 +403,27 @@
     background: rgba(117, 117, 117, 0.1);
 }
 
+.icon-btn.open-url {
+    color: #00bcd4;
+}
+
+.icon-btn.open-url:hover {
+    background: rgba(0, 188, 212, 0.1);
+}
+
+.icon-btn.open-url.disabled,
+.icon-btn.open-url:disabled {
+    color: #bdbdbd;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.icon-btn.open-url.disabled:hover,
+.icon-btn.open-url:disabled:hover {
+    background: transparent;
+    transform: none;
+}
+
 .form-card {
     background: var(--bg-secondary);
     border-radius: 12px;
