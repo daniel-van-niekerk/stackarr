@@ -35,10 +35,11 @@
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.btn-secondary {
+/* Form action buttons */
+.form-actions .btn-secondary {
     flex: 1;
-    background: #e0e0e0;
-    color: #666;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     padding: 1rem;
     border-radius: 8px;
     font-size: 1rem;
@@ -46,10 +47,36 @@
     cursor: pointer;
     text-decoration: none;
     text-align: center;
+    display: block;
+    border: 2px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.form-actions .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: var(--bg-tertiary);
+}
+
+.btn-secondary {
+    flex: 1;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    border: 2px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .btn-secondary:hover {
-    background: #d0d0d0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: var(--bg-tertiary);
 }
 
 .btn-add {
