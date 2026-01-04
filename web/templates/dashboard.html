@@ -266,7 +266,7 @@ docker ps</code></div>
                               {{range $index, $port := .Ports}}
                                 {{if eq $index 0}}
                                   {{if eq $port.Protocol "tcp"}}
-                                    <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('{{$.ServiceType}}', {{$port.Host}})"></button>
+                                    <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('{{$.ServiceType}}', {{$port.Host}}, '{{$.Image}}')"></button>
                                   {{end}}
                                 {{end}}
                               {{end}}
@@ -350,7 +350,7 @@ docker ps</code></div>
                           {{range $index, $port := .Ports}}
                             {{if eq $index 0}}
                               {{if eq $port.Protocol "tcp"}}
-                                <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('', '{{$port.HostPort}}')"></button>
+                                <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('', '{{$port.HostPort}}', '{{.Image}}')"></button>
                               {{end}}
                             {{end}}
                           {{end}}
@@ -433,12 +433,17 @@ docker ps</code></div>
         });
 
         // Open container URL in new tab
-        function openContainerURL(serviceType, port) {
+        function openContainerURL(serviceType, port, imageName) {
             const hostname = window.location.hostname;
+            const portNum = parseInt(port);
             let url = `http://${hostname}:${port}`;
 
-            // Special case for Plex - append /web path
-            if (serviceType === 'plex') {
+            // Check if this is Plex - by serviceType, image name, or default port (32400)
+            const isPlex = serviceType === 'plex' ||
+                          (imageName && imageName.toLowerCase().includes('plex')) ||
+                          portNum === 32400;
+
+            if (isPlex) {
                 url += '/web';
             }
 
