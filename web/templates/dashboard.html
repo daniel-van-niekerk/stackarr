@@ -350,7 +350,7 @@ docker ps</code></div>
                           {{range $index, $port := .Ports}}
                             {{if eq $index 0}}
                               {{if eq $port.Protocol "tcp"}}
-                                <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('', '{{$port.HostPort}}', '{{.Image}}')"></button>
+                                <button type="button" class="icon-btn open-url" title="Open URL" onclick="openContainerURL('', '{{$port.HostPort}}', '{{$.Image}}')"></button>
                               {{end}}
                             {{end}}
                           {{end}}
