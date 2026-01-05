@@ -13,6 +13,11 @@ func GenerateDockerCompose(name, image string, ports []database.PortMapping, vol
 	compose += fmt.Sprintf("    container_name: %s\n", name)
 	compose += fmt.Sprintf("    image: %s\n", image)
 
+	// Plex requires host networking for claim token to work
+	if name == "plex" {
+		compose += "    network_mode: host\n"
+	}
+
 	// Add environment variables
 	if len(envVars) > 0 {
 		compose += "    environment:\n"
@@ -29,8 +34,8 @@ func GenerateDockerCompose(name, image string, ports []database.PortMapping, vol
 		}
 	}
 
-	// Add ports
-	if len(ports) > 0 {
+	// Add ports (skip for Plex since it uses host networking)
+	if len(ports) > 0 && name != "plex" {
 		compose += "    ports:\n"
 		for _, p := range ports {
 			if p.Protocol == "udp" {

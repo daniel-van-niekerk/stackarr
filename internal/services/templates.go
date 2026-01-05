@@ -39,10 +39,11 @@ func NewRegistry() *Registry {
 					{Host: "/mnt/media", Container: "/media"},
 				},
 				DefaultEnvVars: map[string]string{
-					"PUID":    "1000",
-					"PGID":    "1000",
-					"TZ":      "America/New_York",
-					"VERSION": "docker",
+					"PUID":        "1000",
+					"PGID":        "1000",
+					"TZ":          "America/New_York",
+					"VERSION":     "docker",
+					"PLEX_CLAIM":  "",
 				},
 			},
 			"sonarr": {
