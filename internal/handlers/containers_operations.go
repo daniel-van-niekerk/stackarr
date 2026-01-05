@@ -141,7 +141,15 @@ func (h *ContainerHandlers) createAndStartContainerWithProgress(ctx context.Cont
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
-	containerID, err := client.CreateContainer(ctx, data.Name, data.Image, portBindings, volumeBindings, envList)
+	// Plex requires host network mode for proper functionality
+	networkMode := ""
+	if data.Name == "plex" {
+		networkMode = "host"
+		// Clear port bindings when using host mode (they're mutually exclusive)
+		portBindings = nil
+	}
+
+	containerID, err := client.CreateContainerWithNetworkMode(ctx, data.Name, data.Image, portBindings, volumeBindings, envList, networkMode)
 	if err != nil {
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
