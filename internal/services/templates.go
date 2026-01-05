@@ -196,16 +196,17 @@ func NewRegistry() *Registry {
 				Name:        "Homarr",
 				Description: "Customizable dashboard for your services",
 				IconURL:     "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/homarr.png",
-				Image:       "ghcr.io/ajnart/homarr:latest",
+				Image:       "ghcr.io/homarr-labs/homarr:latest",
 				DefaultPorts: []database.PortMapping{
 					{Host: 7575, Container: 7575, Protocol: "tcp"},
 				},
 				DefaultVolumes: []database.VolumeMapping{
-					{Host: "/mnt/docker/homarr/configs", Container: "/app/data/configs"},
-					{Host: "/mnt/docker/homarr/icons", Container: "/app/public/icons"},
-					{Host: "/mnt/docker/homarr/data", Container: "/data"},
+					{Host: "/mnt/docker/homarr/appdata", Container: "/appdata"},
+					{Host: "/var/run/docker.sock", Container: "/var/run/docker.sock"},
 				},
-				DefaultEnvVars: map[string]string{},
+				DefaultEnvVars: map[string]string{
+					"SECRET_ENCRYPTION_KEY": "",
+				},
 			},
 		},
 	}

@@ -3,7 +3,9 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -254,6 +256,18 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 		envVars[envKeys[i]] = value
 	}
 
+	// Generate random encryption key for Homarr if not provided
+	if name == "homarr" && (envVars["SECRET_ENCRYPTION_KEY"] == "" || envVars["SECRET_ENCRYPTION_KEY"] == "0") {
+		encryptionKey, err := generateRandomHex(32)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to generate encryption key for Homarr")
+			http.Error(w, "Failed to generate encryption key", http.StatusInternalServerError)
+			return
+		}
+		envVars["SECRET_ENCRYPTION_KEY"] = encryptionKey
+		log.Info().Msg("Generated random encryption key for Homarr")
+	}
+
 	// Generate docker-compose file
 	// Use ./data/compose for development, can be configured later
 	composeDir := filepath.Join(".", "data", "compose")
@@ -414,4 +428,14 @@ func (h *ContainerHandlers) DeleteContainer(w http.ResponseWriter, r *http.Reque
 
 	// Redirect back to dashboard
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// generateRandomHex generates a random hex string of the specified length (in bytes)
+// For a 64-character hex string, pass 32
+func generateRandomHex(byteLength int) (string, error) {
+	bytes := make([]byte, byteLength)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
