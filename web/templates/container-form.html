@@ -52,6 +52,17 @@
                         <input type="text" id="icon_url" name="icon_url" value="{{.Container.IconURL}}" placeholder="e.g., https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/plex.png">
                         <small>URL to an icon image for this container</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="network_mode">Network Mode</label>
+                        <select id="network_mode" name="network_mode">
+                            <option value="" {{if eq .Container.NetworkMode ""}}selected{{end}}>Bridge (Default)</option>
+                            <option value="host" {{if eq .Container.NetworkMode "host"}}selected{{end}}>Host</option>
+                        </select>
+                        <small id="network-mode-help">
+                            Bridge mode uses port mappings. Host mode shares the host's network (Linux only, needed for Plex claim token).
+                        </small>
+                    </div>
                 </div>
 
                 <!-- Port Mappings -->
@@ -120,6 +131,36 @@
 
     <script src="/static/js/progress.js"></script>
     <script src="/static/js/pages/container-form.js"></script>
+
+    <script>
+        const networkModeSelect = document.getElementById('network_mode');
+        const portsSection = document.querySelector('.form-section:has(#ports-list)');
+        const networkModeHelp = document.getElementById('network-mode-help');
+
+        function updateNetworkModeUI() {
+            const mode = networkModeSelect.value;
+            if (mode === 'host') {
+                if (portsSection) {
+                    portsSection.style.opacity = '0.5';
+                    portsSection.style.pointerEvents = 'none';
+                }
+                networkModeHelp.textContent = 'Host mode: Port mappings disabled (container uses host network directly).';
+                networkModeHelp.style.color = '#ff9800';
+            } else {
+                if (portsSection) {
+                    portsSection.style.opacity = '1';
+                    portsSection.style.pointerEvents = 'auto';
+                }
+                networkModeHelp.textContent = 'Bridge mode uses port mappings. Host mode shares host network (Linux only, needed for Plex claim token).';
+                networkModeHelp.style.color = '';
+            }
+        }
+
+        if (networkModeSelect) {
+            networkModeSelect.addEventListener('change', updateNetworkModeUI);
+            updateNetworkModeUI();
+        }
+    </script>
 </body>
 </html>
 {{end}}

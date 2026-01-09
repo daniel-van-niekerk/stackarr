@@ -429,8 +429,13 @@ func (h *DashboardHandlers) executeContainerUpdate(operationID string, container
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	// Update the container with progress
-	newDockerID, err := client.UpdateContainerWithProgress(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env, progressChan)
+	// Clear port bindings when using host mode (they're mutually exclusive)
+	if container.NetworkMode == "host" {
+		portBindings = nil
+	}
+
+	// Update the container with progress and network mode
+	newDockerID, err := client.UpdateContainerWithProgressAndNetworkMode(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env, container.NetworkMode, progressChan)
 	close(progressChan)
 
 	if err != nil {

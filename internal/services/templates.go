@@ -32,7 +32,15 @@ func NewRegistry() *Registry {
 				IconURL:     "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/plex.png",
 				Image:       "lscr.io/linuxserver/plex:latest",
 				DefaultPorts: []database.PortMapping{
-					{Host: 32400, Container: 32400, Protocol: "tcp"},
+					{Host: 32400, Container: 32400, Protocol: "tcp"},   // Main web/streaming
+					{Host: 1900, Container: 1900, Protocol: "udp"},     // DLNA
+					{Host: 5353, Container: 5353, Protocol: "udp"},     // Bonjour/Avahi
+					{Host: 8324, Container: 8324, Protocol: "tcp"},     // Roku
+					{Host: 32410, Container: 32410, Protocol: "udp"},   // GDM discovery
+					{Host: 32412, Container: 32412, Protocol: "udp"},   // GDM discovery
+					{Host: 32413, Container: 32413, Protocol: "udp"},   // GDM discovery
+					{Host: 32414, Container: 32414, Protocol: "udp"},   // GDM discovery
+					{Host: 32469, Container: 32469, Protocol: "tcp"},   // DLNA
 				},
 				DefaultVolumes: []database.VolumeMapping{
 					{Host: "/mnt/docker/plex/config", Container: "/config"},
