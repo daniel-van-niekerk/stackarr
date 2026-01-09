@@ -1,2 +1,6 @@
 # Ignore the data directory (database, compose files, etc.)
 data/
+
+# Ignore build binaries
+stackarr
+stackarr.exe
