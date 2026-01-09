@@ -8,13 +8,13 @@ import (
 )
 
 // GenerateDockerCompose generates a docker-compose YAML file from container configuration
-func GenerateDockerCompose(name, image string, ports []database.PortMapping, volumes []database.VolumeMapping, envVars map[string]string) string {
+func GenerateDockerCompose(name, image string, ports []database.PortMapping, volumes []database.VolumeMapping, envVars map[string]string, networkMode string) string {
 	compose := fmt.Sprintf("version: '3.8'\n\nservices:\n  %s:\n", name)
 	compose += fmt.Sprintf("    container_name: %s\n", name)
 	compose += fmt.Sprintf("    image: %s\n", image)
 
-	// Plex requires host networking for claim token to work
-	if name == "plex" {
+	// Add network mode if specified
+	if networkMode == "host" {
 		compose += "    network_mode: host\n"
 	}
 
@@ -34,8 +34,8 @@ func GenerateDockerCompose(name, image string, ports []database.PortMapping, vol
 		}
 	}
 
-	// Add ports (skip for Plex since it uses host networking)
-	if len(ports) > 0 && name != "plex" {
+	// Add ports (skip when using host networking)
+	if len(ports) > 0 && networkMode != "host" {
 		compose += "    ports:\n"
 		for _, p := range ports {
 			if p.Protocol == "udp" {

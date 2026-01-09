@@ -149,6 +149,12 @@ func (db *DB) runMigrations() error {
 				ALTER TABLE users ADD COLUMN show_quickstart BOOLEAN DEFAULT 1;
 			`,
 		},
+		{
+			name: "add_network_mode_to_containers",
+			sql: `
+				ALTER TABLE containers ADD COLUMN network_mode TEXT DEFAULT '';
+			`,
+		},
 	}
 
 	// Apply each migration

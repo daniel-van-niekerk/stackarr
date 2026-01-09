@@ -55,6 +55,7 @@ func (h *ContainerHandlers) executeContainerCreate(operationID string, data Cont
 		ServiceType: "",
 		Image:       data.Image,
 		IconURL:     data.IconURL,
+		NetworkMode: data.NetworkMode,
 		Ports:       data.PortMappings,
 		Volumes:     data.VolumeMappings,
 		Environment: data.EnvVars,
@@ -141,11 +142,10 @@ func (h *ContainerHandlers) createAndStartContainerWithProgress(ctx context.Cont
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
-	// Plex requires host network mode for proper functionality
-	networkMode := ""
-	if data.Name == "plex" {
-		networkMode = "host"
-		// Clear port bindings when using host mode (they're mutually exclusive)
+	// Use network mode from container data
+	networkMode := data.NetworkMode
+	// Clear port bindings when using host mode (they're mutually exclusive)
+	if networkMode == "host" {
 		portBindings = nil
 	}
 

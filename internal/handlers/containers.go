@@ -38,6 +38,7 @@ type ContainerFormData struct {
 	Name           string
 	Image          string
 	IconURL        string
+	NetworkMode    string
 	PortMappings   []database.PortMapping
 	VolumeMappings []database.VolumeMapping
 	EnvVars        map[string]string
@@ -91,6 +92,7 @@ func (h *ContainerHandlers) ShowContainerForm(w http.ResponseWriter, r *http.Req
 			Name:           container.Name,
 			Image:          container.Image,
 			IconURL:        container.IconURL,
+			NetworkMode:    container.NetworkMode,
 			PortMappings:   container.Ports,
 			VolumeMappings: container.Volumes,
 			EnvVars:        container.Environment,
@@ -99,10 +101,16 @@ func (h *ContainerHandlers) ShowContainerForm(w http.ResponseWriter, r *http.Req
 		// Load template for quick start
 		registry := services.NewRegistry()
 		if tmpl, ok := registry.Get(templateName); ok {
+			// Default network mode for Plex (backward compatibility)
+			networkMode := ""
+			if templateName == "plex" {
+				networkMode = "host"
+			}
 			data["Container"] = ContainerFormData{
 				Name:           templateName,
 				Image:          tmpl.Image,
 				IconURL:        tmpl.IconURL,
+				NetworkMode:    networkMode,
 				PortMappings:   tmpl.DefaultPorts,
 				VolumeMappings: tmpl.DefaultVolumes,
 				EnvVars:        tmpl.DefaultEnvVars,
@@ -169,6 +177,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 	name := r.FormValue("name")
 	image := r.FormValue("image")
 	iconURL := r.FormValue("icon_url")
+	networkMode := r.FormValue("network_mode")
 	idStr := r.FormValue("id")
 
 	// Validate required fields
@@ -280,7 +289,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	composeContent := docker.GenerateDockerCompose(name, image, ports, volumes, envVars)
+	composeContent := docker.GenerateDockerCompose(name, image, ports, volumes, envVars, networkMode)
 	log.Info().Str("composePath", composePath).Msg("Writing compose file")
 	if err := os.WriteFile(composePath, []byte(composeContent), 0644); err != nil {
 		log.Error().Err(err).Msg("Failed to write compose file")
@@ -303,12 +312,19 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		// Apply backward compatibility for existing Plex containers with empty network_mode
+		// This preserves host mode for containers created before the network_mode feature
+		if name == "plex" && networkMode == "" && existingContainer.NetworkMode == "" {
+			networkMode = "host"
+		}
+
 		container := &database.Container{
 			ID:          id,
 			Name:        name,
 			ServiceType: "",
 			Image:       image,
 			IconURL:     iconURL,
+			NetworkMode: networkMode,
 			Ports:       ports,
 			Volumes:     volumes,
 			Environment: envVars,
@@ -338,6 +354,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			ServiceType: "",
 			Image:       image,
 			IconURL:     iconURL,
+			NetworkMode: networkMode,
 			Ports:       ports,
 			Volumes:     volumes,
 			Environment: envVars,
@@ -362,6 +379,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			Name:           name,
 			Image:          image,
 			IconURL:        iconURL,
+			NetworkMode:    networkMode,
 			PortMappings:   ports,
 			VolumeMappings: volumes,
 			EnvVars:        envVars,
