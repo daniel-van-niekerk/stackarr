@@ -193,11 +193,43 @@ RESET_USER=confirm-delete-user ./stackarr
 2. Specify image, ports, volumes, and environment variables
 3. Click "Create Container"
 
+### Container Network Modes
+
+StackArr supports both **Bridge** and **Host** network modes for containers:
+
+#### Bridge Mode (Default)
+- Containers are isolated from the host network
+- Each service gets explicit port mappings (e.g., `8877:8877`)
+- Recommended for most setups
+- Works reliably on Windows/WSL, macOS, and Linux
+- Port conflicts can be easily resolved by changing mapped ports
+
+**Best for:**
+- Windows/WSL deployments
+- Multi-container setups with potential port conflicts
+- Network isolation and security
+
+#### Host Mode
+- Containers share the host's network namespace
+- No port mapping needed - all container ports are directly accessible
+- Better performance (no network translation overhead)
+- Can cause port conflicts if multiple services use the same port
+- Only fully supported on native Linux (limited/unreliable on Windows/WSL)
+
+**Best for:**
+- Native Linux deployments
+- Services requiring raw network access
+- Performance-critical scenarios
+- Plex media streaming (if running on Linux)
+
+**Note:** If you're running StackArr on Windows or WSL and need to use a service that requires host mode (like Plex), consider using bridge mode with the necessary ports mapped. This provides better compatibility while still achieving the desired functionality.
+
 ### Managing Containers
 
 - **Start/Stop/Restart** - Use the action buttons on each container card
 - **Edit** - Modify container configuration (requires restart)
 - **Delete** - Remove container and its docker-compose file
+- **Network Mode** - Toggle between Bridge and Host modes when creating/editing containers (available in the form)
 
 ### Backup & Restore
 
