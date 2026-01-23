@@ -155,6 +155,12 @@ func (db *DB) runMigrations() error {
 				ALTER TABLE containers ADD COLUMN network_mode TEXT DEFAULT '';
 			`,
 		},
+		{
+			name: "add_privileged_to_containers",
+			sql: `
+				ALTER TABLE containers ADD COLUMN privileged BOOLEAN DEFAULT 0;
+			`,
+		},
 	}
 
 	// Apply each migration

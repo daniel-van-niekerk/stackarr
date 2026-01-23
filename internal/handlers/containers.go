@@ -39,6 +39,7 @@ type ContainerFormData struct {
 	Image          string
 	IconURL        string
 	NetworkMode    string
+	Privileged     bool
 	PortMappings   []database.PortMapping
 	VolumeMappings []database.VolumeMapping
 	EnvVars        map[string]string
@@ -93,6 +94,7 @@ func (h *ContainerHandlers) ShowContainerForm(w http.ResponseWriter, r *http.Req
 			Image:          container.Image,
 			IconURL:        container.IconURL,
 			NetworkMode:    container.NetworkMode,
+			Privileged:     container.Privileged,
 			PortMappings:   container.Ports,
 			VolumeMappings: container.Volumes,
 			EnvVars:        container.Environment,
@@ -111,6 +113,7 @@ func (h *ContainerHandlers) ShowContainerForm(w http.ResponseWriter, r *http.Req
 				Image:          tmpl.Image,
 				IconURL:        tmpl.IconURL,
 				NetworkMode:    networkMode,
+				Privileged:     false,
 				PortMappings:   tmpl.DefaultPorts,
 				VolumeMappings: tmpl.DefaultVolumes,
 				EnvVars:        tmpl.DefaultEnvVars,
@@ -178,6 +181,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 	image := r.FormValue("image")
 	iconURL := r.FormValue("icon_url")
 	networkMode := r.FormValue("network_mode")
+	privileged := r.FormValue("privileged") == "true"
 	idStr := r.FormValue("id")
 
 	// Validate required fields
@@ -289,7 +293,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	composeContent := docker.GenerateDockerCompose(name, image, ports, volumes, envVars, networkMode)
+	composeContent := docker.GenerateDockerCompose(name, image, ports, volumes, envVars, networkMode, privileged)
 	log.Info().Str("composePath", composePath).Msg("Writing compose file")
 	if err := os.WriteFile(composePath, []byte(composeContent), 0644); err != nil {
 		log.Error().Err(err).Msg("Failed to write compose file")
@@ -325,6 +329,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			Image:       image,
 			IconURL:     iconURL,
 			NetworkMode: networkMode,
+			Privileged:  privileged,
 			Ports:       ports,
 			Volumes:     volumes,
 			Environment: envVars,
@@ -355,6 +360,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			Image:       image,
 			IconURL:     iconURL,
 			NetworkMode: networkMode,
+			Privileged:  privileged,
 			Ports:       ports,
 			Volumes:     volumes,
 			Environment: envVars,
@@ -380,6 +386,7 @@ func (h *ContainerHandlers) SaveContainer(w http.ResponseWriter, r *http.Request
 			Image:          image,
 			IconURL:        iconURL,
 			NetworkMode:    networkMode,
+			Privileged:     privileged,
 			PortMappings:   ports,
 			VolumeMappings: volumes,
 			EnvVars:        envVars,

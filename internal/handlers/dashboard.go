@@ -435,7 +435,7 @@ func (h *DashboardHandlers) executeContainerUpdate(operationID string, container
 	}
 
 	// Update the container with progress and network mode
-	newDockerID, err := client.UpdateContainerWithProgressAndNetworkMode(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env, container.NetworkMode, progressChan)
+	newDockerID, err := client.UpdateContainerWithProgressAndNetworkMode(ctx, container.DockerID, container.Name, container.Image, portBindings, volumes, env, container.NetworkMode, container.Privileged, progressChan)
 	close(progressChan)
 
 	if err != nil {
