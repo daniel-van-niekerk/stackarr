@@ -56,6 +56,7 @@ func (h *ContainerHandlers) executeContainerCreate(operationID string, data Cont
 		Image:       data.Image,
 		IconURL:     data.IconURL,
 		NetworkMode: data.NetworkMode,
+		Privileged:  data.Privileged,
 		Ports:       data.PortMappings,
 		Volumes:     data.VolumeMappings,
 		Environment: data.EnvVars,
@@ -149,7 +150,7 @@ func (h *ContainerHandlers) createAndStartContainerWithProgress(ctx context.Cont
 		portBindings = nil
 	}
 
-	containerID, err := client.CreateContainerWithNetworkMode(ctx, data.Name, data.Image, portBindings, volumeBindings, envList, networkMode)
+	containerID, err := client.CreateContainerWithNetworkMode(ctx, data.Name, data.Image, portBindings, volumeBindings, envList, networkMode, data.Privileged)
 	if err != nil {
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}

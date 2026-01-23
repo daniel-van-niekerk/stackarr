@@ -211,11 +211,11 @@ type ContainerPortBinding struct {
 
 // CreateContainer creates a Docker container
 func (c *Client) CreateContainer(ctx context.Context, name, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string) (string, error) {
-	return c.CreateContainerWithNetworkMode(ctx, name, imageName, portBindings, volumes, env, "")
+	return c.CreateContainerWithNetworkMode(ctx, name, imageName, portBindings, volumes, env, "", false)
 }
 
-// CreateContainerWithNetworkMode creates a Docker container with optional network mode
-func (c *Client) CreateContainerWithNetworkMode(ctx context.Context, name, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, networkMode string) (string, error) {
+// CreateContainerWithNetworkMode creates a Docker container with optional network mode and privileged setting
+func (c *Client) CreateContainerWithNetworkMode(ctx context.Context, name, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, networkMode string, privileged bool) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -251,6 +251,7 @@ func (c *Client) CreateContainerWithNetworkMode(ctx context.Context, name, image
 		RestartPolicy: container.RestartPolicy{
 			Name: "unless-stopped",
 		},
+		Privileged: privileged,
 	}
 
 	// Set network mode if specified
@@ -289,11 +290,11 @@ func (c *Client) RemoveContainer(ctx context.Context, containerID string) error 
 // UpdateContainer updates a container to the latest image version
 // It pulls the latest image, stops the old container, removes it, and creates a new one with the same config
 func (c *Client) UpdateContainer(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string) (string, error) {
-	return c.UpdateContainerWithNetworkMode(ctx, containerID, containerName, imageName, portBindings, volumes, env, "")
+	return c.UpdateContainerWithNetworkMode(ctx, containerID, containerName, imageName, portBindings, volumes, env, "", false)
 }
 
-// UpdateContainerWithNetworkMode updates a container with optional network mode
-func (c *Client) UpdateContainerWithNetworkMode(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, networkMode string) (string, error) {
+// UpdateContainerWithNetworkMode updates a container with optional network mode and privileged setting
+func (c *Client) UpdateContainerWithNetworkMode(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, networkMode string, privileged bool) (string, error) {
 	log.Info().Str("container", containerName).Str("image", imageName).Msg("Updating container to latest image")
 
 	// Step 1: Pull the latest image
@@ -324,7 +325,7 @@ func (c *Client) UpdateContainerWithNetworkMode(ctx context.Context, containerID
 
 	// Step 4: Create new container with the same configuration
 	log.Info().Str("name", containerName).Msg("Creating new container")
-	newContainerID, err := c.CreateContainerWithNetworkMode(ctx, containerName, imageName, portBindings, volumes, env, networkMode)
+	newContainerID, err := c.CreateContainerWithNetworkMode(ctx, containerName, imageName, portBindings, volumes, env, networkMode, privileged)
 	if err != nil {
 		return "", fmt.Errorf("failed to create new container (old container removed): %w", err)
 	}
@@ -344,11 +345,11 @@ func (c *Client) UpdateContainerWithNetworkMode(ctx context.Context, containerID
 
 // UpdateContainerWithProgress updates a container to the latest image version with progress streaming
 func (c *Client) UpdateContainerWithProgress(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, progressChan chan<- streaming.ProgressEvent) (string, error) {
-	return c.UpdateContainerWithProgressAndNetworkMode(ctx, containerID, containerName, imageName, portBindings, volumes, env, "", progressChan)
+	return c.UpdateContainerWithProgressAndNetworkMode(ctx, containerID, containerName, imageName, portBindings, volumes, env, "", false, progressChan)
 }
 
-// UpdateContainerWithProgressAndNetworkMode updates a container with optional network mode and progress streaming
-func (c *Client) UpdateContainerWithProgressAndNetworkMode(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, networkMode string, progressChan chan<- streaming.ProgressEvent) (string, error) {
+// UpdateContainerWithProgressAndNetworkMode updates a container with optional network mode, privileged setting, and progress streaming
+func (c *Client) UpdateContainerWithProgressAndNetworkMode(ctx context.Context, containerID, containerName, imageName string, portBindings []ContainerPortBinding, volumes []string, env []string, networkMode string, privileged bool, progressChan chan<- streaming.ProgressEvent) (string, error) {
 	log.Info().Str("container", containerName).Str("image", imageName).Msg("Updating container to latest image with progress")
 
 	// Step 1: Pull the latest image with progress
@@ -399,7 +400,7 @@ func (c *Client) UpdateContainerWithProgressAndNetworkMode(ctx context.Context, 
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
-	newContainerID, err := c.CreateContainerWithNetworkMode(ctx, containerName, imageName, portBindings, volumes, env, networkMode)
+	newContainerID, err := c.CreateContainerWithNetworkMode(ctx, containerName, imageName, portBindings, volumes, env, networkMode, privileged)
 	if err != nil {
 		return "", fmt.Errorf("failed to create new container (old container removed): %w", err)
 	}

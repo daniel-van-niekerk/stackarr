@@ -63,6 +63,17 @@
                             Bridge mode uses port mappings. Host mode shares the host's network (Linux only, needed for Plex claim token).
                         </small>
                     </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="checkbox" id="privileged" name="privileged" value="true" {{if .Container.Privileged}}checked{{end}}>
+                            <label for="privileged" style="display: inline;">Privileged Mode</label>
+                        </div>
+                        <small id="privileged-help" style="color: #ff9800; font-weight: 500; display: block;">
+                            ⚠️ Warning: Privileged mode grants the container extended access to the host system.
+                            Only enable for containers that require hardware access (GPU, USB devices).
+                        </small>
+                    </div>
                 </div>
 
                 <!-- Port Mappings -->
