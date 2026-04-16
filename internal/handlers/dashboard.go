@@ -176,7 +176,7 @@ func (h *DashboardHandlers) ShowDashboard(w http.ResponseWriter, r *http.Request
 	data["HasSonarr"] = installed["sonarr"]
 	data["HasRadarr"] = installed["radarr"]
 	data["HasQBittorrent"] = installed["qbittorrent"]
-	data["HasOverseerr"] = installed["overseerr"]
+	data["HasSeerr"] = installed["seerr"]
 	data["HasSabnzbd"] = installed["sabnzbd"]
 	data["HasProwlarr"] = installed["prowlarr"]
 	data["HasBazarr"] = installed["bazarr"]

@@ -107,16 +107,16 @@ func NewRegistry() *Registry {
 					"WEBUI_PORT": "8080",
 				},
 			},
-			"overseerr": {
-				Name:        "Overseerr",
+			"seerr": {
+				Name:        "Seerr",
 				Description: "Request management and media discovery",
-				IconURL:     "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/overseerr.png",
-				Image:       "lscr.io/linuxserver/overseerr:latest",
+				IconURL:     "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/seerr.png",
+				Image:       "ghcr.io/hotio/seerr:latest",
 				DefaultPorts: []database.PortMapping{
-					{Host: 5055, Container: 5055, Protocol: "tcp"},
+					{Host: 5056, Container: 5055, Protocol: "tcp"},
 				},
 				DefaultVolumes: []database.VolumeMapping{
-					{Host: "/mnt/docker/overseerr/config", Container: "/config"},
+					{Host: "/mnt/docker/seerr/config", Container: "/app/config"},
 				},
 				DefaultEnvVars: map[string]string{
 					"PUID": "1000",
